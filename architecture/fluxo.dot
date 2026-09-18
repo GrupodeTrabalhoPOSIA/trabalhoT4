@@ -1,0 +1,28 @@
+digraph T4 {
+  rankdir=TB;
+  node [shape=box, fontname="Arial"];
+  entrada [label="Entrada do usuário"];
+  validar [label="Validar entrada"];
+  rotear [label="TRH-04 v0.1\nClassificar / rotear"];
+  dados [label="Verificar dados obrigatórios"];
+  carregar [label="Carregar prompt por ID + versão"];
+  contexto [label="Montar contexto mínimo\nPolítica Aurora Tech"];
+  modelo [label="Chamar modelo"];
+  saida [label="Validar contrato de saída"];
+  retry [label="Repetir 1 vez", shape=diamond];
+  responder [label="Responder"];
+  perguntar [label="Perguntar dado ausente"];
+  recusar [label="Recusar / encaminhar"];
+  humano [label="Revisão humana / RH Responde"];
+  entrada -> validar -> rotear;
+  rotear -> dados [label="TRH-01/02/03"];
+  rotear -> recusar [label="FORA_ESCOPO"];
+  dados -> perguntar [label="faltam dados"];
+  dados -> carregar [label="dados suficientes"];
+  carregar -> contexto -> modelo -> saida;
+  saida -> responder [label="válida"];
+  saida -> retry [label="inválida"];
+  retry -> modelo [label="1ª falha"];
+  retry -> humano [label="2ª falha"];
+  recusar -> humano [label="quando aplicável"];
+}

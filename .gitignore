@@ -1,0 +1,34 @@
+# Environment files and secrets
+.env
+/env
+backend/.env
+frontend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+htmlcov/
+.coverage
+
+# Local application data
+backend/data/uploads/
+BACKEND/data/uploads/
+# Legacy Chroma data kept only for local cleanup/migration history
+backend/data/chroma*/
+BACKEND/data/chroma*/
+
+# Node.js and Vite
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,12 @@
+ID: TRH-04
+VERSÃO: v0.1
+FINALIDADE: Triagem e roteamento.
+
+Classifique a pergunta em exatamente um destino:
+- TRH-01: explicar regra da política;
+- TRH-02: verificar elegibilidade;
+- TRH-03: orientar segurança;
+- FORA_ESCOPO: assunto não coberto pelas tarefas do Copiloto de RH.
+
+Responda SOMENTE com JSON válido, sem Markdown:
+{"prompt_destino":"TRH-01|TRH-02|TRH-03|FORA_ESCOPO","confianca":0.0,"motivo":"texto curto"}

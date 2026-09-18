@@ -1,0 +1,30 @@
+{
+  "documents": [
+    {
+      "name": "servicos.txt",
+      "content": "A Aurora Tech oferece consultoria em transformação digital, desenvolvimento de sistemas web sob medida e automação de processos. O atendimento comercial ocorre de segunda a sexta-feira, das 9h às 18h."
+    },
+    {
+      "name": "empresa.txt",
+      "content": "A Aurora Tech é uma empresa brasileira de tecnologia criada para apoiar pequenas e médias empresas. Sua missão é tornar a inovação acessível por meio de soluções digitais simples e confiáveis."
+    }
+  ],
+  "cases": [
+    {
+      "question": "Quais serviços a Aurora Tech oferece?",
+      "expected_source": "servicos.txt"
+    },
+    {
+      "question": "Qual é o horário de atendimento comercial?",
+      "expected_source": "servicos.txt"
+    },
+    {
+      "question": "Qual é a missão da Aurora Tech?",
+      "expected_source": "empresa.txt"
+    },
+    {
+      "question": "Qual é a previsão do tempo em Marte amanhã?",
+      "expected_source": null
+    }
+  ]
+}
