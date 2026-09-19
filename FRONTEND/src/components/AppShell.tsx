@@ -15,7 +15,7 @@ function LiveApiStatus() {
 }
 
 function AppShell({ children, activePage }: AppShellProps) {
-  const interactive = ['t4', 't5', 'chat', 'knowledge'].includes(activePage);
+  const interactive = ['t4', 't5', 't6', 'chat', 'knowledge'].includes(activePage);
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus(); }}>Pular para o conteúdo</a>
@@ -36,7 +36,7 @@ function AppShell({ children, activePage }: AppShellProps) {
 
         <div className="header-actions">
           <nav className="main-navigation" aria-label="Navegação principal">
-            {(['overview', 't1', 't2', 't3', 't4', 't5'] as const).map(page => <a key={page} href={pagePaths[page]} aria-label={page === 'overview' ? 'Visão geral' : pageTitles[page]} className={activePage === page ? 'nav-button nav-button--active' : 'nav-button'} aria-current={activePage === page ? 'page' : undefined}>{page === 'overview' ? 'Visão geral' : <><span className="nav-full-label">Trabalho </span><span className="nav-short-label">T</span>{page.slice(1)}</>}</a>)}
+            {(['overview', 't1', 't2', 't3', 't4', 't5', 't6'] as const).map(page => <a key={page} href={pagePaths[page]} aria-label={page === 'overview' ? 'Visão geral' : pageTitles[page]} className={activePage === page ? 'nav-button nav-button--active' : 'nav-button'} aria-current={activePage === page ? 'page' : undefined}>{page === 'overview' ? 'Visão geral' : <><span className="nav-full-label">Trabalho </span><span className="nav-short-label">T</span>{page.slice(1)}</>}</a>)}
             <a href={pagePaths.about} className={activePage === 'about' ? 'nav-button nav-button--active' : 'nav-button'} aria-current={activePage === 'about' ? 'page' : undefined}>Sobre</a>
           </nav>
         </div>

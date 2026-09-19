@@ -7,11 +7,11 @@ import { deliveries, pageFromHash, pagePaths, reports } from './catalogue';
 
 describe('Catálogo das entregas', () => {
   it('possui uma rota direta e única para cada página', () => {
-    expect(new Set(Object.values(pagePaths)).size).toBe(9);
+    expect(new Set(Object.values(pagePaths)).size).toBe(10);
     for (const [page, hash] of Object.entries(pagePaths)) expect(pageFromHash(hash)).toBe(page);
     expect(pageFromHash('')).toBe('overview');
     expect(pageFromHash('#/inexistente')).toBe('overview');
-    expect(deliveries.map(item => item.id)).toEqual(['t1', 't2', 't3', 't4', 't5']);
+    expect(deliveries.map(item => item.id)).toEqual(['t1', 't2', 't3', 't4', 't5', 't6']);
   });
   it.each(Object.entries(sourceReports))('publica uma cópia íntegra do relatório %s', (_, source) => {
     const content = readFileSync(resolve(process.cwd(), 'public', source.href.slice(1)));

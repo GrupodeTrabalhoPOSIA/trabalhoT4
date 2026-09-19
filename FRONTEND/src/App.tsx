@@ -8,18 +8,20 @@ const ChatPage = lazy(() => import('@/pages/ChatPage'));
 const KnowledgeBasePage = lazy(() => import('@/pages/KnowledgeBasePage'));
 const T4Page = lazy(() => import('@/features/t4/screens/T4Page'));
 const T5Page = lazy(() => import('@/features/t5/T5Page'));
+const T6Page = lazy(() => import('@/features/t6/T6Page'));
 const OverviewPage = lazy(() => import('@/features/deliveries/screens/OverviewPage'));
 const ReportPage = lazy(() => import('@/features/deliveries/screens/ReportPage'));
 const AboutPage = lazy(() => import('@/features/deliveries/screens/AboutPage'));
 
 function App() {
-  const { page: activePage, visitedT4, visitedT5 } = usePageNavigation();
+  const { page: activePage, visitedT4, visitedT5, visitedT6 } = usePageNavigation();
 
   return (
     <AppShell activePage={activePage}>
       <Suspense fallback={<PageLoader />}>
         {visitedT4 && <div hidden={activePage !== 't4'}><T4Page /></div>}
         {visitedT5 && <div hidden={activePage !== 't5'}><T5Page /></div>}
+        {visitedT6 && <div hidden={activePage !== 't6'}><T6Page /></div>}
         {activePage === 'overview' && <OverviewPage />}
         {activePage === 'about' && <AboutPage />}
         {(activePage === 't1' || activePage === 't2' || activePage === 't3') && <ReportPage id={activePage} />}

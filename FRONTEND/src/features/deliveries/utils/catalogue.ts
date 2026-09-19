@@ -4,11 +4,11 @@ import { sourceReports } from '../services/sourceReports';
 export type ReportId = 't1' | 't2' | 't3';
 export const pagePaths: Record<AppPage, string> = {
   overview: '#/entregas', about: '#/sobre', t1: '#/entregas/1', t2: '#/entregas/2',
-  t3: '#/entregas/3', t4: '#/entregas/4', t5: '#/entregas/5', chat: '#/chat', knowledge: '#/base',
+  t3: '#/entregas/3', t4: '#/entregas/4', t5: '#/entregas/5', t6: '#/entregas/6', chat: '#/chat', knowledge: '#/base',
 };
 export const pageTitles: Record<AppPage, string> = {
   overview: 'Portal das entregas', about: 'Sobre', t1: 'Trabalho 1', t2: 'Trabalho 2',
-  t3: 'Trabalho 3', t4: 'Trabalho 4', t5: 'Trabalho 5', chat: 'Chat RAG', knowledge: 'Base de conhecimento',
+  t3: 'Trabalho 3', t4: 'Trabalho 4', t5: 'Trabalho 5', t6: 'Entrega final', chat: 'Chat RAG', knowledge: 'Base de conhecimento',
 };
 export function pageFromHash(hash: string): AppPage {
   return (Object.keys(pagePaths) as AppPage[]).find(page => pagePaths[page] === hash) ?? 'overview';
@@ -35,6 +35,10 @@ export const deliveries = [
     description: 'Documentos participam da resposta, com fontes rastreáveis e um protocolo de avaliação.',
     evidence: '20 casos · 2 avaliadores · gate preliminar', status: 'Candidata em avaliação',
     outcome: 'Próximo passo: comprovar qualidade e segurança.' },
+  { id: 't6', number: '06', verb: 'Consolidar', title: 'Entrega final',
+    description: 'Uma versão identificada, seis cenas de demonstração e um pacote com evidências e decisão.',
+    evidence: '20 casos · 6 cenas · gate final', status: 'Evidências a consolidar',
+    outcome: 'Fechamento: versão, avaliação e revisão humana.' },
 ] as const;
 
 interface ReportTable { title: string; columns: string[]; rows: string[][] }

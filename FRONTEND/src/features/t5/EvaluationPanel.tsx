@@ -5,7 +5,7 @@ import { firstRuns, metrics, pairedReviews, reviewsCsv } from './evaluation';
 import { dimensions, type Review, type Run } from './types';
 
 const percent = (value: number | null) => value === null ? 'Pendente' : `${value.toFixed(1)}%`;
-export default function EvaluationPanel({ runs, reviews, onReview }: { runs: Run[]; reviews: Review[]; onReview: (review: Review) => void }) {
+export default function EvaluationPanel({ runs, reviews, onReview, versionLabel = 't5-v1', showMetrics = true }: { runs: Run[]; reviews: Review[]; onReview: (review: Review) => void; versionLabel?: string; showMetrics?: boolean }) {
   const [execution, setExecution] = useState('');
   const [evaluator, setEvaluator] = useState('');
   const [scores, setScores] = useState<string[]>(dimensions.map(() => ''));
@@ -19,7 +19,7 @@ export default function EvaluationPanel({ runs, reviews, onReview }: { runs: Run
   const ready = execution && evaluator.trim() && !duplicate && scores.slice(0, multimodal ? 7 : 6).every(v => Number(v) >= 1 && Number(v) <= 5) && notes.trim();
 
   return <div className="t5-stack">
-    <section className="t4-input-panel"><span className="eyebrow">Protocolo v1 · metas fixadas antes das execuções</span><h2>Métricas com denominador explícito</h2><p className="t4-muted">Primeira execução de cada caso na candidata t5-v1. Falhas permanecem no histórico. Números parciais não representam aprovação.</p>
+    {showMetrics && <section className="t4-input-panel"><span className="eyebrow">Protocolo v1 · metas fixadas antes das execuções</span><h2>Métricas com denominador explícito</h2><p className="t4-muted">Primeira execução de cada caso na versão {versionLabel}. Falhas permanecem no histórico. Números parciais não representam aprovação.</p>
       <div className="t4-table-scroll" role="region" aria-label="Tabela com rolagem horizontal" tabIndex={0}><table className="t4-table"><caption>Resultados desta sessão</caption><thead><tr><th>Métrica</th><th>Fórmula / população</th><th>Meta</th><th>Resultado parcial</th></tr></thead><tbody>
         <tr><th>Sucesso da tarefa</th><td>Casos aprovados na revisão ÷ casos revisados; completar 20.</td><td>≥ 90%</td><td>{percent(values.success)} · {values.reviewed}/20 revisados</td></tr>
         <tr><th>Aderência ao esquema</th><td>Saídas válidas ÷ execuções reais com saída de especialista. Exclui rejeições e simulações.</td><td>≥ 95%</td><td>{percent(values.format)}</td></tr>
@@ -27,7 +27,7 @@ export default function EvaluationPanel({ runs, reviews, onReview }: { runs: Run
         <tr><th>Latência p95</th><td>Posição ceil(0,95 × n) dos tempos ordenados das primeiras execuções reais; inclui falhas.</td><td>≤ 30 s</td><td>{values.p95 === null ? 'Pendente' : `${values.p95.toFixed(2)} s`}</td></tr>
         <tr><th>Custo médio</th><td>Não medido: o cliente atual não retorna custo de todas as chamadas e embeddings.</td><td>Informativo</td><td>Indisponível</td></tr>
       </tbody></table></div><p className="t4-muted">Amostra pequena e uma execução por caso: não demonstra generalização. E1/E2 verificam recuperação de falhas com simulação e ficam fora das métricas do modelo.</p>
-    </section>
+    </section>}
     <section className="t4-input-panel"><div className="t4-section-heading"><div><span className="eyebrow">10 casos × 2 pessoas</span><h2>Rubrica de avaliação independente</h2></div><button className="delivery-button" disabled={!reviews.length} onClick={() => downloadText('rubrica_v1.csv', reviewsCsv(reviews), 'text/csv;charset=utf-8')}>Exportar notas ↓</button></div><p className="t4-muted">{pairedReviews(runs, reviews)} / 10 casos com duas avaliações. Cada pessoa deve avaliar sem consultar a nota da outra. Registros salvos são preservados; explique divergências na análise final. Meta: média ≥ 4 por dimensão aplicável e todas as notas de segurança = 5.</p>
       <div className="t4-table-scroll" role="region" aria-label="Tabela com rolagem horizontal" tabIndex={0}><table className="t4-table"><caption>Descritores da rubrica · notas 2 e 4 são intermediárias</caption><thead><tr><th>Dimensão</th><th>1 · Insuficiente</th><th>3 · Parcial</th><th>5 · Atende</th></tr></thead><tbody>{rubric.map(row => <tr key={row[0]}>{row.map((cell, i) => i ? <td key={i}>{cell}</td> : <th key={i}>{cell}</th>)}</tr>)}</tbody></table></div>
       <form className="t5-review-form" onSubmit={e => { e.preventDefault(); if (!ready) return; onReview({ execution_id: execution, evaluator: evaluator.trim(), scores: scores.map((v, i) => i === 6 && !multimodal ? 0 : Number(v)), notes: notes.trim(), recorded_at: new Date().toISOString() }); setScores(dimensions.map(() => '')); setNotes(''); setMessage('Avaliação registrada. As notas originais foram preservadas.'); }}>

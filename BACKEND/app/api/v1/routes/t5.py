@@ -18,6 +18,7 @@ from app.core.config import get_settings
 from app.core.errors import AppError
 from app.services.documents import DocumentProcessor
 from app.services.t4.flow import PROMPT_VERSIONS, T4FlowService
+from app.services.final_delivery import current_release_id
 
 router = APIRouter(prefix="/t5", tags=["Trabalho 5"])
 CANDIDATE = "t5-v1"
@@ -66,7 +67,7 @@ def retrieve_document(filename, content, content_type, question):
 @router.get("/config")
 def configuration():
     settings = get_settings()
-    return {"candidate": CANDIDATE, "model": settings.openrouter_model, "max_bytes": MAX_BYTES, "max_pages": MAX_PAGES, "max_characters": MAX_CHARACTERS, "formats": [".pdf", ".docx", ".txt", ".md"], "top_k": settings.retrieval_top_k, "min_relevance": settings.retrieval_min_relevance, "embedding_model": settings.openrouter_embedding_model, "max_context_characters": settings.max_context_characters, "temperature": settings.openrouter_temperature, "max_tokens": settings.openrouter_max_tokens, "chunk_size": settings.chunk_size, "chunk_overlap": settings.chunk_overlap, "prompts": PROMPT_VERSIONS}
+    return {"candidate": CANDIDATE, "model": settings.openrouter_model, "max_bytes": MAX_BYTES, "max_pages": MAX_PAGES, "max_characters": MAX_CHARACTERS, "formats": [".pdf", ".docx", ".txt", ".md"], "top_k": settings.retrieval_top_k, "min_relevance": settings.retrieval_min_relevance, "embedding_model": settings.openrouter_embedding_model, "max_context_characters": settings.max_context_characters, "temperature": settings.openrouter_temperature, "max_tokens": settings.openrouter_max_tokens, "chunk_size": settings.chunk_size, "chunk_overlap": settings.chunk_overlap, "prompts": PROMPT_VERSIONS, "timeout_seconds": settings.openrouter_timeout_seconds, "embedding_dimensions": settings.embedding_dimensions, "embedding_batch_size": settings.embedding_batch_size, "upload_limit_mb": settings.max_upload_size_mb}
 
 
 @router.post("/run")
@@ -83,7 +84,7 @@ async def run_flow(
         raise AppError(status_code=422, code="INVALID_SIMULATION", message="Simulações textuais não aceitam anexos.")
     started = time.perf_counter()
     sources, document = [], None
-    metadata = {"execution_id": str(uuid4()), "executed_at": datetime.now(timezone.utc).isoformat(), "candidate": CANDIDATE, "question": question.strip(), "mode": mode, "model": get_settings().openrouter_model if mode == "real" else "simulação determinística", "configuration": configuration()}
+    metadata = {"execution_id": str(uuid4()), "executed_at": datetime.now(timezone.utc).isoformat(), "candidate": CANDIDATE, "question": question.strip(), "mode": mode, "model": get_settings().openrouter_model if mode == "real" else "simulação determinística", "configuration": configuration(), "origin": "t5", "release_id": current_release_id()}
     try:
         context = None
         if file is not None:

@@ -3,7 +3,7 @@ import { pageFromHash, pageTitles } from '../utils/catalogue';
 
 function initialLocation() {
   const page = pageFromHash(window.location.hash);
-  return { page, visitedT4: page === 't4', visitedT5: page === 't5' };
+  return { page, visitedT4: page === 't4', visitedT5: page === 't5', visitedT6: page === 't6' };
 }
 
 /** Hash URLs allow direct links on static hosting, without server routing. */
@@ -12,7 +12,7 @@ export function usePageNavigation() {
   useEffect(() => {
     function navigate() {
       const page = pageFromHash(window.location.hash);
-      setLocation(previous => ({ page, visitedT4: previous.visitedT4 || page === 't4', visitedT5: previous.visitedT5 || page === 't5' }));
+      setLocation(previous => ({ page, visitedT4: previous.visitedT4 || page === 't4', visitedT5: previous.visitedT5 || page === 't5', visitedT6: previous.visitedT6 || page === 't6' }));
     }
     window.addEventListener('hashchange', navigate);
     return () => window.removeEventListener('hashchange', navigate);

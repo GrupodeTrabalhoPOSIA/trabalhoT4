@@ -27,6 +27,7 @@ frontend/dist/
 frontend/.vite/
 *.tsbuildinfo
 .playwright-mcp/
+.artifacts/
 
 # Editors and operating systems
 .idea/

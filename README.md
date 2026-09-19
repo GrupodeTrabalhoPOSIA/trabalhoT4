@@ -308,3 +308,10 @@ O fluxo carrega os templates por ID/versão, usa o TRH-04 para roteamento, verif
 Referência: [limites da API de inferência do OpenRouter](https://openrouter.ai/docs/api_reference/limits). Os limites da Data API de rankings não se aplicam a este endpoint de chat.
 
 Os 13 casos exigidos estão em `tests/casos.csv`; os resultados reais devem ser registrados em `tests/resultados.csv`. O diagrama está em `architecture/fluxo.png` e a comparação com o baseline em `evaluation/comparacao_baseline.md`.
+# Trabalho 6 — entrega final
+
+A rota `#/entregas/6` consolida o projeto com versão identificada, arquitetura, vinte casos, seis cenas de demonstração, rubrica humana, riscos, gate e exportação ZIP/PDF/JSON. Os rascunhos ficam no navegador; exporte o JSON para preservar as evidências.
+
+Antes de publicar mudanças, execute a partir de `BACKEND`: `.venv/Scripts/python evaluation/freeze_final.py`. Isso atualiza o manifesto compartilhado pelo frontend/backend, as entradas sintéticas e o arquivo de código permitido em `BACKEND/release`. Publique ambos os serviços com esses artefatos. Qualquer alteração de código, configuração, prompts, base ou testes exige novo congelamento e reexecução dos vinte casos. O comando usa a configuração pública do ambiente atual, sem exportar credenciais.
+
+As notas, contribuições, ensaio e decisão precisam ser preenchidos pelo grupo. O sistema não atribui notas humanas nem transforma testes automatizados em resultados acadêmicos. Custos podem ser registrados como valores observados com referência às chamadas do provedor; a média requer todos os casos reais. O pacote é explicitamente um rascunho até a decisão sustentada por evidências. Guia: `FRONTEND/public/entregas/t6/guia.md`.

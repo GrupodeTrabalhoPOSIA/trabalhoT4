@@ -3,6 +3,7 @@ import { ApiError, apiRequest } from '@/services/apiClient';
 import { PROJECT_MODEL_ID } from '@/common/modelPolicy';
 import { candidate } from './data';
 import type { Case, Config, Result, Review, Run } from './types';
+import { publishT5Session } from '@/features/t6/evidence';
 
 export function useT5() {
   const [config, setConfig] = useState<Config | null>(null);
@@ -12,6 +13,7 @@ export function useT5() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const controller = useRef<AbortController | null>(null);
+  useEffect(() => { publishT5Session(runs, reviews); }, [runs, reviews]);
   useEffect(() => {
     const request = new AbortController();
     void apiRequest<Config>('/t5/config', { signal: request.signal }).then(setConfig).catch(() => { if (!request.signal.aborted) setConfigError(true); });

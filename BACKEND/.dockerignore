@@ -22,3 +22,4 @@ data/
 
 Dockerfile*
 *.md
+!release/docs/*.md
