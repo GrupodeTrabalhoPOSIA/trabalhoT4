@@ -4,6 +4,25 @@ O backend usa o Postgres do Supabase com a extensão `pgvector`. O React não ac
 
 ## Aplicar a estrutura
 
+### Deploy Docker automático
+
+O Dockerfile inclui os scripts e executa `python -m app.migrate` antes do Uvicorn.
+Configure `SUPABASE_DB_URL` no Render e deixe Docker Command vazio para usar esse CMD.
+Não há conexão ao banco durante o build da imagem. Cada migração e seu registro
+em `aurora_schema_migrations` são gravados na mesma transação; um lock impede
+execuções concorrentes. Reinícios pulam versões já aplicadas. Falhas impedem a API
+de iniciar e alterações em scripts já aplicados são recusadas.
+
+Use esse fluxo para bancos novos. Se as tabelas já foram criadas manualmente sem
+histórico, o runner interrompe para revisão e adoção do histórico; não apaga nem
+recria os dados. Não execute os passos manuais abaixo antes do primeiro deploy
+automático. Não reaplique scripts antigos: acrescente novas migrações.
+
+As migrações criam a estrutura, mas não incluem documentos nem embeddings.
+Após o deploy, carregue os documentos pela tela Base de conhecimento.
+
+### Aplicação manual (alternativa ao Docker automático)
+
 1. Crie um projeto no Supabase.
 2. Abra **SQL Editor** no painel.
 3. Copie e execute `migrations/001_aurora_vector_store.sql` e depois `migrations/002_mistral_embeddings_1024.sql`, nessa ordem. Se a primeira já foi aplicada, execute somente a segunda.
@@ -18,7 +37,7 @@ SUPABASE_DB_URL=postgresql://postgres.PROJECT_REF:SENHA@aws-0-REGIAO.pooler.supa
 
 Se a senha tiver caracteres reservados de URL, codifique-os antes de montar a URI. `SUPABASE_POOL_MIN_SIZE` e `SUPABASE_POOL_MAX_SIZE` controlam quantas sessões o processo mantém; os padrões acadêmicos são 1 e 5.
 
-A migração pode ser executada novamente sem recriar tabelas ou índices. Ela cria duas tabelas, a função transacional de indexação e a função de busca por similaridade cosseno.
+A migração 001 cria duas tabelas, a função transacional de indexação e a função de busca por similaridade cosseno. No fluxo automático, o histórico controla quais scripts executar.
 
 A migração 002 muda a coluna para `vector(1024)`, compatível com `mistralai/mistral-embed-2312`. Ela bloqueia escritas durante a transação e recusa a execução se houver documentos ou chunks; nenhum registro é apagado. Pause uploads, aplique a migração, configure o backend com o modelo Mistral e `EMBEDDING_DIMENSIONS=1024` e só então reabra os uploads. Não reaplique a 001 isoladamente após a 002.
 

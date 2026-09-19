@@ -141,6 +141,13 @@ Framework Preset deve ser **Vite** e o Output Directory deve ser `dist` quando `
 
 ### Backend
 
+No deploy Docker, a imagem executa as migrações automaticamente antes de iniciar
+a API. Mantenha **Docker Command vazio** no Render e configure `SUPABASE_DB_URL`.
+O histórico evita reaplicação nos reinícios. Isso prepara bancos novos, mas não
+insere documentos: faça os uploads na Base de conhecimento. Bancos criados
+manualmente precisam de revisão do histórico antes de usar esse fluxo.
+Veja `BACKEND/database/supabase/README.md` para detalhes.
+
 No serviço que executa o FastAPI, configure como segredos:
 
 ```dotenv
