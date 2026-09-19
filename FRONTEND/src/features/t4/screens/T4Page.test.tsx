@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { StrictMode } from 'react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getFlowConfig, runFlow } from '../services/t4Api';
@@ -80,5 +81,59 @@ describe('Protótipo T4 integrado', () => {
     await user.click(screen.getByRole('button', { name: 'Dias remotos' }));
     expect(screen.getByRole('button', { name: 'Executar fluxo →' })).toBeDisabled();
     expect(runFlow).not.toHaveBeenCalled();
+  });
+  it('não dispara geração ao montar a página, mesmo em StrictMode', async () => {
+    render(<StrictMode><T4Page /></StrictMode>);
+    await screen.findByText('mistralai/mistral-large');
+    expect(runFlow).not.toHaveBeenCalled();
+  });
+  it('bloqueia clique duplo e submits repetidos enquanto uma execução está pendente', async () => {
+    let finish!: (value: FlowResult) => void;
+    vi.mocked(runFlow).mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    const user = userEvent.setup(); render(<T4Page />);
+    await screen.findByText('mistralai/mistral-large');
+    await user.click(screen.getByRole('button', { name: 'Dias remotos' }));
+    await user.dblClick(screen.getByRole('button', { name: 'Executar fluxo →' }));
+    expect(screen.getByRole('button', { name: 'Executando fluxo…' })).toBeDisabled();
+    const form = screen.getByLabelText('Pergunta ao copiloto').closest('form')!;
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+    expect(runFlow).toHaveBeenCalledTimes(1);
+    await act(async () => finish(result));
+    expect(await screen.findByRole('heading', { name: 'Resposta do copiloto' })).toBeInTheDocument();
+    expect(runFlow).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Executar fluxo →' })).toBeEnabled();
+  });
+  it('mostra diagnóstico de 429, origem e espera sem confundir limite com falta de saldo', async () => {
+    vi.mocked(runFlow).mockResolvedValue({ ...result, valid: false, status: 'fallback_roteamento', retries: 1,
+      attempts: [{ phase: 'routing', output: '', error: 'MODEL_RATE_LIMITED', retry_wait_seconds: 3,
+        diagnostic: { http_status: 429, source: 'provider', reason: 'rate_limit', retry_after_seconds: 3,
+          message: 'Limite de requisições atingido. Isso pode ocorrer mesmo com saldo disponível.' } }],
+    });
+    const user = userEvent.setup(); render(<T4Page />);
+    await screen.findByText('mistralai/mistral-large');
+    await user.click(screen.getByRole('button', { name: 'Dias remotos' }));
+    await user.click(screen.getByRole('button', { name: 'Executar fluxo →' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('HTTP 429');
+    expect(screen.getByRole('alert')).toHaveTextContent('mesmo com saldo disponível');
+    await user.click(screen.getByText('Contexto e saídas brutas'));
+    const diagnostic = screen.getByLabelText('Diagnóstico seguro do serviço');
+    expect(diagnostic).toHaveTextContent('Origem: Provedor do modelo');
+    expect(diagnostic).toHaveTextContent('Espera solicitada pelo serviço: 3 s');
+    expect(diagnostic).toHaveTextContent('Espera aplicada antes da repetição: 3 s');
+    expect(screen.getByText('Nenhum texto gerado nesta tentativa.')).toBeInTheDocument();
+    expect(screen.queryByText('Sem resposta do provedor.')).not.toBeInTheDocument();
+  });
+  it('não inventa diagnóstico para execuções antigas sem os novos campos', async () => {
+    vi.mocked(runFlow).mockResolvedValue({ ...result, valid: false, status: 'fallback_roteamento',
+      attempts: [{ phase: 'routing', output: '', error: 'MODEL_RATE_LIMITED' }],
+    });
+    const user = userEvent.setup(); render(<T4Page />);
+    await screen.findByText('mistralai/mistral-large');
+    await user.click(screen.getByRole('button', { name: 'Dias remotos' }));
+    await user.click(screen.getByRole('button', { name: 'Executar fluxo →' }));
+    await screen.findByRole('heading', { name: 'Resposta do copiloto' });
+    expect(screen.queryByLabelText('Diagnóstico seguro do serviço')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

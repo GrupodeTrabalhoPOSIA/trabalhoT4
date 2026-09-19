@@ -1,5 +1,6 @@
 """Cliente HTTP isolado para a API do OpenRouter."""
 
+import logging
 from typing import Any
 
 import httpx
@@ -7,8 +8,10 @@ import httpx
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.models.rag import LLMMessage
+from app.services.llm.provider_errors import diagnose_provider_error
 
 OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
+logger = logging.getLogger("aurora.openrouter")
 
 
 class OpenRouterClient:
@@ -69,7 +72,7 @@ class OpenRouterClient:
                 message="Não foi possível acessar o serviço de respostas.",
             ) from exception
 
-        self._raise_for_provider_error(response.status_code)
+        self._raise_for_provider_error(response)
         try:
             data = response.json()
             content = data["choices"][0]["message"]["content"]
@@ -89,19 +92,25 @@ class OpenRouterClient:
         return content.strip()
 
     @staticmethod
-    def _raise_for_provider_error(status_code: int) -> None:
+    def _raise_for_provider_error(response: httpx.Response) -> None:
+        status_code = response.status_code
         if status_code < 400:
             return
+        diagnostic = diagnose_provider_error(response)
         if status_code in {401, 403}:
             code = "MODEL_AUTH_ERROR"
             message = "A autenticação do serviço de respostas falhou."
         elif status_code == 429:
             code = "MODEL_RATE_LIMITED"
-            message = "O limite do serviço de respostas foi atingido. Tente mais tarde."
-        elif status_code in {404, 402}:
+            message = diagnostic.message
+        elif status_code == 402:
+            code = "MODEL_CREDIT_LIMIT"
+            message = diagnostic.message
+        elif status_code == 404:
             code = "MODEL_UNAVAILABLE"
             message = "O modelo configurado não está disponível."
         else:
             code = "MODEL_PROVIDER_ERROR"
             message = "O serviço de respostas apresentou uma falha."
-        raise AppError(status_code=502, code=code, message=message)
+        logger.warning("model_provider_error code=%s diagnostic=%s", code, diagnostic.model_dump(exclude_none=True))
+        raise AppError(status_code=502, code=code, message=message, diagnostic=diagnostic)

@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.models.errors import ErrorDetail, ErrorResponse
+from app.models.errors import ErrorDetail, ErrorResponse, ProviderDiagnostic
 
 logger = logging.getLogger("aurora.errors")
 
@@ -22,12 +22,14 @@ class AppError(Exception):
         code: str,
         message: str,
         details: dict[str, Any] | None = None,
+        diagnostic: ProviderDiagnostic | None = None,
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.code = code
         self.message = message
         self.details = details
+        self.diagnostic = diagnostic
 
 
 def register_exception_handlers(application: FastAPI) -> None:
@@ -45,7 +47,10 @@ def register_exception_handlers(application: FastAPI) -> None:
             detail=ErrorDetail(
                 code=exception.code,
                 message=exception.message,
-                details=exception.details,
+                details=(
+                    {**(exception.details or {}), "provider": exception.diagnostic.model_dump(exclude_none=True)}
+                    if exception.diagnostic else exception.details
+                ),
             )
         )
         return JSONResponse(

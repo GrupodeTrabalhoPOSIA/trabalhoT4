@@ -61,7 +61,7 @@ def test_legacy_gpt_environment_still_sends_only_mistral(monkeypatch) -> None:
 
 @pytest.mark.parametrize(
     ("provider_status", "expected_code"),
-    [(401, "MODEL_AUTH_ERROR"), (429, "MODEL_RATE_LIMITED"), (404, "MODEL_UNAVAILABLE")],
+    [(401, "MODEL_AUTH_ERROR"), (403, "MODEL_AUTH_ERROR"), (429, "MODEL_RATE_LIMITED"), (402, "MODEL_CREDIT_LIMIT"), (404, "MODEL_UNAVAILABLE")],
 )
 def test_maps_provider_errors(provider_status: int, expected_code: str) -> None:
     transport = httpx.MockTransport(
@@ -133,3 +133,33 @@ def test_malformed_success_response_is_rejected() -> None:
         )
 
     assert captured.value.code == "MODEL_INVALID_RESPONSE"
+
+
+def test_error_diagnostics_and_logs_never_expose_free_text_or_secrets(caplog) -> None:
+    secret = "sk-or-v1-secret-test"
+    private_text = f"Bearer {secret}; pessoa@example.com; pergunta privada"
+    response = httpx.Response(429, headers={"Retry-After": "3", "X-Private": private_text}, json={
+        "error": {"message": private_text, "metadata": {
+            "provider_name": private_text, "provider_code": "capacity_exceeded",
+            "raw": private_text, "remedy_hint": private_text,
+        }},
+    })
+    settings = Settings(_env_file=None, openrouter_api_key=SecretStr(secret))
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return response
+
+    with pytest.raises(AppError) as captured:
+        asyncio.run(OpenRouterClient(settings, transport=httpx.MockTransport(handler)).complete(
+            [{"role": "user", "content": "pergunta privada"}],
+        ))
+    diagnostic = captured.value.diagnostic
+    assert diagnostic.source == "provider" and diagnostic.reason == "capacity"
+    assert diagnostic.retry_after_seconds == 3
+    assert len(calls) == 1  # Retry pertence ao fluxo, nunca ao cliente HTTP.
+    public_data = f"{captured.value} {diagnostic.model_dump_json()} {caplog.text}"
+    for forbidden in (secret, "pessoa@example.com", "pergunta privada", "Bearer"):
+        assert forbidden not in public_data
+    assert "model_provider_error" in caplog.text and "429" in caplog.text

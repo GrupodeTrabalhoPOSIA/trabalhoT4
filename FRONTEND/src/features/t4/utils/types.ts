@@ -12,6 +12,20 @@ export interface FlowRequest {
   correction: string;
   mode: RunMode;
 }
+export interface ProviderDiagnostic {
+  http_status: number;
+  source: 'openrouter' | 'provider' | 'unknown';
+  reason: 'rate_limit' | 'capacity' | 'quota' | 'credits' | 'key_credit_limit' | 'in_flight_budget' | 'request_budget' | 'unknown';
+  message: string;
+  retry_after_seconds?: number;
+}
+export interface FlowAttempt {
+  phase: string;
+  output: string;
+  error: string;
+  diagnostic?: ProviderDiagnostic;
+  retry_wait_seconds?: number;
+}
 export interface FlowResult {
   execution_id: string;
   executed_at: string;
@@ -32,7 +46,7 @@ export interface FlowResult {
   mode: RunMode;
   context: string;
   trace: { id: string; state: 'completed' | 'warning' | 'failed'; detail: string }[];
-  attempts: { phase: string; output: string; error: string }[];
+  attempts: FlowAttempt[];
 }
 export type ReviewField = 'conclusion' | 'format' | 'factuality' | 'refusal';
 export interface Evidence extends FlowResult {

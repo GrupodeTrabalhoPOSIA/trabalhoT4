@@ -6,6 +6,8 @@ import type { Evidence, ReviewField } from './types';
 export function evidenceCsv(runs: Evidence[]): string {
   const headers = ['id', 'categoria', 'execucao_id', 'data', 'modo', 'modelo', 'temperatura', 'limite_tokens', 'pergunta', 'pergunta_efetiva', 'rota', 'prompt_versao', 'saida', 'validacao_formato_automatica', 'latencia_ms', 'repeticao', 'falha', 'status', 'conclusao_humana', 'formato_humano', 'factualidade_humana', 'recusa_humana'];
   const rows = runs.map((r) => [r.case_id, r.category, r.execution_id, r.executed_at, r.mode, r.model, r.temperature, r.max_tokens, r.question, r.effective_question, r.route, `${r.prompt_id} ${r.prompt_version}`, r.answer, r.valid, r.latency_ms, r.retries, r.attempts.filter(a => a.error).map(a => a.error).join('; '), r.status, ...Object.values(r.review).map(v => v === null ? 'PENDENTE' : v ? 'S' : 'N')]);
+  headers.push('diagnosticos_servico');
+  rows.forEach((row, index) => row.push(JSON.stringify(runs[index].attempts.filter(a => a.diagnostic))));
   return '\uFEFF' + [headers, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n');
 }
 

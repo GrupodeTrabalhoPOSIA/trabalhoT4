@@ -3,11 +3,15 @@ import asyncio
 import json
 
 import pytest
+import httpx
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 from app.api.v1.routes.t4 import get_t4_service
 from app.core.errors import AppError
+from app.core.config import Settings
 from app.main import app
+from app.services.llm.openrouter import OpenRouterClient
 from tests.test_t4_flow import service
 
 
@@ -91,3 +95,34 @@ def test_request_rejects_blank_question_and_unknown_simulation():
     client = TestClient(app)
     assert client.post('/api/v1/t4/run', json={"question": "  "}).status_code == 422
     assert client.post('/api/v1/t4/run', json={"question": "teste", "mode": "arbitrary"}).status_code == 422
+
+
+def test_provider_diagnostic_reaches_t4_response_without_secrets_or_extra_calls():
+    calls = []
+    private = "sk-or-v1-test-secret pessoa@example.com pergunta-privada"
+
+    def handler(request):
+        calls.append(json.loads(request.content))
+        return httpx.Response(429, headers={"Retry-After": "120"}, json={"error": {
+            "message": private, "metadata": {"provider_code": 429, "raw": private},
+        }})
+
+    flow = service([])
+    flow.llm_client = OpenRouterClient(
+        Settings(_env_file=None, openrouter_api_key=SecretStr("sk-or-v1-test-secret")),
+        transport=httpx.MockTransport(handler),
+    )
+    app.dependency_overrides[get_t4_service] = lambda: flow
+    try:
+        response = TestClient(app).post('/api/v1/t4/run', json={"question": "Quantos dias?"})
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "fallback_roteamento" and body["retries"] == 0
+    diagnostic = body["attempts"][0]["diagnostic"]
+    assert diagnostic["http_status"] == 429 and diagnostic["source"] == "provider"
+    assert diagnostic["retry_after_seconds"] == 120
+    assert len(calls) == 1 and calls[0]["model"] == "mistralai/mistral-large"
+    for forbidden in ("sk-or-v1-test-secret", "pessoa@example.com", "pergunta-privada"):
+        assert forbidden not in response.text

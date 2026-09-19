@@ -1,5 +1,11 @@
 from pathlib import Path
 import asyncio
+from unittest.mock import AsyncMock
+
+import pytest
+
+from app.core.errors import AppError
+from app.models.errors import ProviderDiagnostic
 from app.services.t4 import PromptRegistry, T4FlowService
 
 PROMPTS = Path(__file__).parents[1] / "prompts" / "templates"
@@ -7,7 +13,12 @@ KB = (Path(__file__).parents[1] / "knowledge" / "politica_aurora_tech.txt").read
 
 class ScriptedLLM:
     def __init__(self, outputs): self.outputs=list(outputs); self.calls=[]
-    async def complete(self, messages): self.calls.append(messages); return self.outputs.pop(0)
+    async def complete(self, messages):
+        self.calls.append(messages)
+        output = self.outputs.pop(0)
+        if isinstance(output, Exception):
+            raise output
+        return output
 
 def service(outputs): return T4FlowService(llm_client=ScriptedLLM(outputs), prompt_registry=PromptRegistry(PROMPTS), knowledge_base=KB)
 
@@ -40,3 +51,97 @@ def test_second_invalid_specialist_output_uses_fallback():
     s=service(['{"prompt_destino":"TRH-03","confianca":0.9,"motivo":"segurança"}', 'inválida', 'ainda inválida'])
     r=asyncio.run(s.run('Como acesso os documentos?'))
     assert not r.valid and r.status=='fallback_validacao'
+
+
+ROUTE = '{"prompt_destino":"TRH-01","confianca":0.98,"motivo":"regra"}'
+ANSWER = 'Resposta: Até dois dias.\nRegra aplicada: Até dois dias por semana.\nPróximo passo: Definir com o gestor.'
+
+
+def rate_limit(wait=None):
+    return AppError(status_code=502, code="MODEL_RATE_LIMITED", message="privado", diagnostic=ProviderDiagnostic(
+        http_status=429, source="provider", reason="rate_limit", retry_after_seconds=wait,
+    ))
+
+
+@pytest.mark.parametrize(("wait", "expected_wait"), [(None, 2), (0, 0), (3, 3), (30, 30)])
+def test_rate_limit_waits_once_then_recovers_without_changing_prompts(monkeypatch, wait, expected_wait):
+    sleep = AsyncMock()
+    monkeypatch.setattr("app.services.t4.flow.asyncio.sleep", sleep)
+    flow = service([rate_limit(wait), ROUTE, ANSWER])
+    result = asyncio.run(flow.run("Quantos dias?"))
+    assert result.valid and result.retries == 1
+    assert len(flow.llm_client.calls) == 3
+    assert flow.llm_client.calls[0] == flow.llm_client.calls[1]
+    sleep.assert_awaited_once_with(expected_wait)
+    assert result.attempts[0]["retry_wait_seconds"] == expected_wait
+    assert result.attempts[0]["diagnostic"]["http_status"] == 429
+    assert "privado" not in str(result)
+
+
+def test_specialist_can_use_the_same_global_retry_budget(monkeypatch):
+    sleep = AsyncMock()
+    monkeypatch.setattr("app.services.t4.flow.asyncio.sleep", sleep)
+    flow = service([ROUTE, rate_limit(4), ANSWER])
+    result = asyncio.run(flow.run("Quantos dias?"))
+    assert result.valid and result.retries == 1
+    assert flow.llm_client.calls[1] == flow.llm_client.calls[2]
+    sleep.assert_awaited_once_with(4)
+
+
+def test_repeated_rate_limit_stops_without_sleeping_or_calling_again(monkeypatch):
+    sleep = AsyncMock()
+    monkeypatch.setattr("app.services.t4.flow.asyncio.sleep", sleep)
+    flow = service([rate_limit(2), rate_limit(5)])
+    result = asyncio.run(flow.run("Quantos dias?"))
+    assert not result.valid and result.retries == 1
+    assert len(flow.llm_client.calls) == 2
+    sleep.assert_awaited_once_with(2)
+    assert result.attempts[-1]["diagnostic"]["retry_after_seconds"] == 5
+    assert "retry_wait_seconds" not in result.attempts[-1]
+
+
+@pytest.mark.parametrize("wait", [31, 300, 86400])
+def test_long_wait_is_reported_without_premature_retry(monkeypatch, wait):
+    sleep = AsyncMock()
+    monkeypatch.setattr("app.services.t4.flow.asyncio.sleep", sleep)
+    flow = service([rate_limit(wait)])
+    result = asyncio.run(flow.run("Quantos dias?"))
+    assert result.retries == 0 and not result.valid
+    assert len(flow.llm_client.calls) == 1
+    sleep.assert_not_awaited()
+    assert any(f"espera de {wait} s" in step["detail"] for step in result.trace)
+
+
+@pytest.mark.parametrize("outputs", [
+    ["inválido", ROUTE, rate_limit(2)],
+    [rate_limit(2), ROUTE, "inválido"],
+])
+def test_retry_budget_is_shared_between_format_and_rate_limits(monkeypatch, outputs):
+    sleep = AsyncMock()
+    monkeypatch.setattr("app.services.t4.flow.asyncio.sleep", sleep)
+    flow = service(outputs)
+    result = asyncio.run(flow.run("Quantos dias?"))
+    assert result.retries == 1 and result.status == "fallback_validacao"
+    assert len(flow.llm_client.calls) == 3
+    assert sleep.await_count == (1 if isinstance(outputs[0], AppError) else 0)
+
+
+@pytest.mark.parametrize("code", ["MODEL_AUTH_ERROR", "MODEL_CREDIT_LIMIT", "MODEL_NOT_CONFIGURED"])
+def test_permanent_errors_do_not_retry(monkeypatch, code):
+    sleep = AsyncMock()
+    monkeypatch.setattr("app.services.t4.flow.asyncio.sleep", sleep)
+    flow = service([AppError(status_code=502, code=code, message="segredo")])
+    result = asyncio.run(flow.run("Quantos dias?"))
+    assert not result.valid and result.retries == 0
+    assert len(flow.llm_client.calls) == 1
+    assert "segredo" not in str(result)
+    sleep.assert_not_awaited()
+
+
+def test_cancellation_during_wait_does_not_issue_another_paid_call(monkeypatch):
+    sleep = AsyncMock(side_effect=asyncio.CancelledError)
+    monkeypatch.setattr("app.services.t4.flow.asyncio.sleep", sleep)
+    flow = service([rate_limit(3)])
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(flow.run("Quantos dias?"))
+    assert len(flow.llm_client.calls) == 1

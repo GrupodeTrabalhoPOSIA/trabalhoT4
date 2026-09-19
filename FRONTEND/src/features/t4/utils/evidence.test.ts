@@ -33,4 +33,14 @@ describe('Rastreabilidade das evidências', () => {
     expect(output).toContain('INVALID_FORMAT');
     expect(output).toContain('PENDENTE');
   });
+  it('preserva diagnóstico e espera dos erros nas evidências exportadas', () => {
+    const output = evidenceCsv([{ case_id: 'P1', attempts: [{ phase: 'routing', output: '', error: 'MODEL_RATE_LIMITED',
+      diagnostic: { http_status: 429, source: 'provider', reason: 'rate_limit', retry_after_seconds: 3, message: 'Limite de requisições.' },
+      retry_wait_seconds: 3,
+    }], review: { conclusion: null, format: null, factuality: null, refusal: null }, mode: 'real' } as Evidence]);
+    expect(output).toContain('diagnosticos_servico');
+    expect(output).toContain('""http_status"":429');
+    expect(output).toContain('""retry_wait_seconds"":3');
+    expect(output).toContain('""source"":""provider""');
+  });
 });

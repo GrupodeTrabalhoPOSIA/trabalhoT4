@@ -2,13 +2,16 @@ import MarkdownContent from '@/features/chat/components/MarkdownContent';
 import { PROJECT_MODEL_ID } from '@/common/modelPolicy';
 import { statusLabels } from '../utils/cases';
 import type { Evidence, ReviewField } from '../utils/types';
+import ProviderErrorDetails from './ProviderErrorDetails';
 
 const reviewFields: [ReviewField, string][] = [['conclusion', 'Concluiu a tarefa?'], ['format', 'Formato adequado?'], ['factuality', 'Sem informação inventada?'], ['refusal', 'Encaminhamento / recusa correto?']];
 
 export default function RunResult({ run, onReview, onCorrect }: { run: Evidence; onReview: (id: string, field: ReviewField, value: boolean | null) => void; onCorrect: () => void }) {
+  const lastDiagnostic = run.attempts.at(-1)?.diagnostic;
   return <section className="t4-result" aria-labelledby="result-heading">
     <div className="t4-result-heading"><span className={`t4-pill ${run.valid ? '' : 't4-pill--warning'}`}>{statusLabels[run.status] ?? run.status}</span><small>{run.mode === 'real' ? 'Execução real' : 'Simulação · sem chamada ao modelo'}</small></div>
     <h2 id="result-heading">Resposta do copiloto</h2>
+    {!run.valid && lastDiagnostic && <p className="t4-notice" role="alert">A execução foi interrompida por um erro do serviço de IA (HTTP {lastDiagnostic.http_status}). {lastDiagnostic.message} Consulte o diagnóstico em “Contexto e saídas brutas”.</p>}
     {run.mode === 'real' && run.model !== PROJECT_MODEL_ID && <p className="t4-notice" role="alert">Esta execução informa um modelo diferente de {PROJECT_MODEL_ID}. O registro foi preservado, mas não pode ser usado como comparação com o baseline Mistral Large.</p>}
     <MarkdownContent content={run.answer} />
     <dl className="t4-run-metrics">
@@ -23,7 +26,7 @@ export default function RunResult({ run, onReview, onCorrect }: { run: Evidence;
       <p><strong>Modelo:</strong> {run.model}</p><p><strong>Pergunta efetiva:</strong> {run.effective_question}</p>
       {run.correction_applied && <p>A correção substituiu a pergunta anterior; nenhuma conversa antiga foi enviada.</p>}
       <h3>Base enviada ao especialista</h3><pre>{run.context || 'Especialista não foi chamado.'}</pre>
-      {run.attempts.map((attempt, index) => <div key={index}><h3>Tentativa {index + 1} · {attempt.phase}</h3>{attempt.error && <p className="t4-warning">{attempt.error}</p>}<pre>{attempt.output || 'Sem resposta do provedor.'}</pre></div>)}
+      {run.attempts.map((attempt, index) => <div key={index}><h3>Tentativa {index + 1} · {attempt.phase}</h3>{attempt.error && <p className="t4-warning">{attempt.error}</p>}<ProviderErrorDetails attempt={attempt} /><pre>{attempt.output || 'Nenhum texto gerado nesta tentativa.'}</pre></div>)}
     </details>
     <details className="t4-details"><summary>Registrar avaliação humana</summary>
       <p className="t4-muted">Use o resultado esperado do caso e a base autorizada. A aprovação nunca é preenchida automaticamente.</p>

@@ -31,7 +31,7 @@ export function useT4() {
     setBusy(true);
     setError('');
     setSelectedId(null);
-    // Até três chamadas sequenciais (roteamento, especialista e uma repetição).
+    // Até três chamadas sequenciais e até 30 s de espera controlada por HTTP 429.
     const timeout = setTimeout(() => request.abort(), 390_000);
     try {
       const result = await runFlow({ question, correction, mode: testCase?.mode ?? 'real' }, request.signal);

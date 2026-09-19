@@ -1,12 +1,13 @@
 """Fluxo executável do Trabalho 4: roteamento, contexto mínimo, validação e fallback."""
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal, NotRequired, TypedDict
 
 from app.models.rag import LLMMessage
 from app.services.llm import LLMClient
@@ -15,6 +16,16 @@ from app.core.errors import AppError
 Route = Literal["TRH-01", "TRH-02", "TRH-03", "FORA_ESCOPO"]
 
 PROMPT_VERSIONS = {"TRH-01": "v0.3", "TRH-02": "v0.1", "TRH-03": "v0.1", "TRH-04": "v0.1"}
+MAX_RATE_LIMIT_WAIT_SECONDS = 30
+DEFAULT_RATE_LIMIT_WAIT_SECONDS = 2
+
+
+class FlowAttempt(TypedDict):
+    phase: str
+    output: str
+    error: str
+    diagnostic: NotRequired[dict[str, Any]]
+    retry_wait_seconds: NotRequired[int]
 
 @dataclass(frozen=True)
 class FlowResult:
@@ -27,7 +38,7 @@ class FlowResult:
     latency_ms: int
     status: str
     trace: list[dict[str, str]] = field(default_factory=list)
-    attempts: list[dict[str, str | int]] = field(default_factory=list)
+    attempts: list[FlowAttempt] = field(default_factory=list)
     context: str = ""
 
 class PromptRegistry:
@@ -51,7 +62,7 @@ class T4FlowService:
         started = time.perf_counter()
         clean = question.strip()
         trace: list[dict[str, str]] = []
-        attempts: list[dict[str, str | int]] = []
+        attempts: list[FlowAttempt] = []
         retries = 0
         context = ""
 
@@ -67,21 +78,41 @@ class T4FlowService:
         async def generate(messages: list[LLMMessage], phase: str, validator):
             nonlocal retries
             while True:
+                retry_wait = None
+                invalid_format = False
                 try:
                     raw = await self.llm_client.complete(messages)
                     accepted = validator(raw)
                     attempts.append({"phase": phase, "output": raw, "error": "" if accepted else "INVALID_FORMAT"})
                     if accepted:
                         return raw
+                    invalid_format = True
                 except AppError as error:
-                    attempts.append({"phase": phase, "output": "", "error": error.code})
-                    if error.code not in {"MODEL_TIMEOUT", "MODEL_CONNECTION_ERROR", "MODEL_PROVIDER_ERROR", "MODEL_INVALID_RESPONSE"}:
+                    attempt: FlowAttempt = {"phase": phase, "output": "", "error": error.code}
+                    if error.diagnostic:
+                        attempt["diagnostic"] = error.diagnostic.model_dump(exclude_none=True)
+                    attempts.append(attempt)
+                    if error.code == "MODEL_RATE_LIMITED":
+                        retry_wait = error.diagnostic.retry_after_seconds if error.diagnostic else None
+                        if retry_wait is None:
+                            retry_wait = DEFAULT_RATE_LIMIT_WAIT_SECONDS
+                        if retry_wait > MAX_RATE_LIMIT_WAIT_SECONDS:
+                            step(phase, "warning", f"HTTP 429: serviço pediu espera de {retry_wait} s, acima do teto automático de {MAX_RATE_LIMIT_WAIT_SECONDS} s. Nenhuma repetição antecipada; tente novamente após esse intervalo.")
+                            return None
+                    elif error.code not in {"MODEL_TIMEOUT", "MODEL_CONNECTION_ERROR", "MODEL_PROVIDER_ERROR", "MODEL_INVALID_RESPONSE"}:
                         return None
                 if retries >= 1:
+                    step(phase, "warning", "Limite global de uma repetição já utilizado; nenhuma chamada adicional.")
                     return None
+                if retry_wait is not None:
+                    step(phase, "warning", f"HTTP 429: espera de {retry_wait} s antes da única repetição, mantendo o mesmo modelo e os mesmos prompts.")
+                    attempts[-1]["retry_wait_seconds"] = retry_wait
+                    await asyncio.sleep(retry_wait)
                 retries += 1
-                step(phase, "warning", "Falha na chamada ou no formato. Uma repetição controlada.")
-                messages = [*messages, {"role": "user", "content": "Repita a resposta respeitando exatamente o contrato de saída, usando somente a base fornecida."}]
+                if retry_wait is None:
+                    step(phase, "warning", "Falha na chamada ou no formato. Uma repetição controlada.")
+                if invalid_format:
+                    messages = [*messages, {"role": "user", "content": "Repita a resposta respeitando exatamente o contrato de saída, usando somente a base fornecida."}]
 
         if not clean:
             step("input", "failed", "Pergunta vazia.")

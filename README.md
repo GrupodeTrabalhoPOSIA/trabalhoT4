@@ -265,4 +265,15 @@ python run_t4.py
 
 O fluxo carrega os templates por ID/versão, usa o TRH-04 para roteamento, verifica dados ausentes, monta o contexto mínimo da política, valida o contrato da saída e permite uma única repetição antes do fallback seguro.
 
+### Diagnóstico de limites do OpenRouter
+
+- HTTP 429 é identificado como `MODEL_RATE_LIMITED`, separado de HTTP 402 (`MODEL_CREDIT_LIMIT`). Ter saldo não impede limites de requisições/capacidade.
+- O T4 respeita `Retry-After` em segundos ou data HTTP. Sem um cabeçalho válido, espera 2 segundos. Faz no máximo **uma repetição no fluxo inteiro**, compartilhada com falhas de formato/técnicas; não há retries ocultos no cliente HTTP.
+- A espera automática é de no máximo 30 segundos. Se o serviço pedir mais, o fluxo encerra com fallback e informa o intervalo, sem antecipar a repetição. HTTP 402 e erros de autenticação não são repetidos automaticamente.
+- A repetição de HTTP 429 usa os mesmos prompts e `mistralai/mistral-large`; não troca de modelo nem acrescenta instruções de correção de formato.
+- A tela, as evidências JSON/CSV e o log `aurora.openrouter` registram HTTP, origem reconhecida, categoria normalizada e espera informada. O rastro e as evidências também mostram a espera aplicada antes da repetição. O retorno bruto do provedor, mensagens livres, nomes de provedores e credenciais não são copiados para logs ou diagnósticos públicos. Sem metadados reconhecidos, a origem permanece desconhecida; não se presume falta de saldo.
+- A repetição automática de 429 é específica do fluxo T4. O chat RAG recebe o diagnóstico seguro, mas não ganha chamadas automáticas adicionais.
+
+Referência: [limites da API de inferência do OpenRouter](https://openrouter.ai/docs/api_reference/limits). Os limites da Data API de rankings não se aplicam a este endpoint de chat.
+
 Os 13 casos exigidos estão em `tests/casos.csv`; os resultados reais devem ser registrados em `tests/resultados.csv`. O diagrama está em `architecture/fluxo.png` e a comparação com o baseline em `evaluation/comparacao_baseline.md`.
