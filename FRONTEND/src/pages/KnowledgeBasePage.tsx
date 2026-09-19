@@ -79,6 +79,8 @@ function KnowledgeBasePage() {
           Aqui serão adicionados os documentos usados pelo chatbot para responder às
           perguntas sobre a Aurora Tech no Chat RAG. O protótipo do Trabalho 4 usa
           sua própria política versionada para manter os testes reproduzíveis.
+          {' '}Mistral Embed serve à busca de documentos; as respostas do projeto
+          são geradas com Mistral Large, escolhido no T1.
         </p>
       </div>
 

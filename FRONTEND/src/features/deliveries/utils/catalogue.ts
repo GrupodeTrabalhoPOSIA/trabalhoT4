@@ -85,7 +85,7 @@ export const reports: Record<ReportId, DeliveryReport> = {
         ['C · Mistral Large', 'Ano de 2024 inventado na extração, além de pequenas inferências.', 'Mesmo o melhor modelo precisa de restrições e revisão factual.'],
       ] },
     ],
-    decision: 'Mistral Large foi escolhido como modelo principal pela melhor qualidade e latência na amostra. Aion-RP foi indicado como contingência. Isso é a decisão histórica do T1, não uma garantia de qual modelo está configurado hoje no protótipo.',
+    decision: 'Mistral Large foi escolhido como modelo principal pela melhor qualidade e latência na amostra. Essa escolha é mantida nas entregas seguintes com o identificador mistralai/mistral-large. O relatório do T1 cita Aion-RP como contingência histórica; o projeto não faz substituição automática do modelo de geração.',
     handoff: 'O T2 leva essa escolha para um copiloto de RH com tarefas delimitadas e sete testes de referência.',
     limitations: [
       'Uma execução por combinação e um único texto-base: os resultados não demonstram repetibilidade nem generalização.',
@@ -147,7 +147,7 @@ export const reports: Record<ReportId, DeliveryReport> = {
     source: sourceReports.t3,
     objective: 'Organizar os prompts do copiloto em uma biblioteca reutilizável: três especialistas e um roteador. Evoluir o baseline sem perder a ligação entre cada alteração, o teste aplicado e o resultado registrado.',
     method: [
-      'O baseline v0.1 do T2 foi preservado. As falhas de R2 e R4 orientaram a proibição de canais e procedimentos não previstos na política.',
+      'O baseline v0.1 do T2 foi preservado, mantendo Mistral Large como modelo de geração escolhido no T1. As falhas de R2 e R4 orientaram a proibição de canais e procedimentos não previstos na política.',
       'Foram definidos quatro templates com IDs TRH-01 a TRH-04. O roteador produz JSON; os especialistas respondem conforme sua tarefa.',
       'O TRH-01 evoluiu até v0.3 com exemplos few-shot. O relatório distingue testes executados de comparações e testes de robustez ainda pendentes.',
     ],

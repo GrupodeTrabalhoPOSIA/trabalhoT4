@@ -452,7 +452,7 @@ Esta estrutura é apenas uma proposta. Nenhum desses diretórios representa impl
 O backend deverá receber por variáveis de ambiente:
 
 - `OPENROUTER_API_KEY`: chave da OpenRouter;
-- `OPENROUTER_MODEL`: identificador do modelo de linguagem;
+- `OPENROUTER_MODEL`: `mistralai/mistral-large`, modelo de geração escolhido no T1 e mantido nas entregas; valores antigos/divergentes são normalizados pelo backend com aviso no log;
 - `FRONTEND_ORIGIN`: endereço permitido pelo CORS;
 - `OPENROUTER_EMBEDDING_MODEL`: modelo remoto de embeddings;
 - `EMBEDDING_DIMENSIONS`: quantidade de componentes esperada pelo pgvector;

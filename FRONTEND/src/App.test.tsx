@@ -22,13 +22,14 @@ describe('Portal acadêmico', () => {
     vi.clearAllMocks();
     window.history.replaceState(null, '', '/');
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
-    vi.mocked(getFlowConfig).mockResolvedValue({ model: 'modelo-teste', temperature: 0.1, max_tokens: 500, prompts: { 'TRH-01': 'v0.3' }, knowledge_base: 'Base de teste.', prompt_provenance: 'Conferir originais.' });
+    vi.mocked(getFlowConfig).mockResolvedValue({ model: 'mistralai/mistral-large', temperature: 0.1, max_tokens: 500, prompts: { 'TRH-01': 'v0.3' }, knowledge_base: 'Base de teste.', prompt_provenance: 'Conferir originais.' });
   });
   it('abre a visão geral sem depender da API do protótipo', async () => {
     render(<App />);
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Um copiloto.');
     expect(screen.getAllByRole('link', { name: /^Abrir Trabalho/ })).toHaveLength(4);
     expect(screen.queryByText('API de teste')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Mistral Large' })).toHaveAttribute('href', 'https://openrouter.ai/mistralai/mistral-large');
     expect(getFlowConfig).not.toHaveBeenCalled();
   });
   it('abre uma entrega pelo endereço e navega entre páginas pelo histórico', async () => {

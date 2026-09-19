@@ -26,7 +26,7 @@ def test_sends_expected_payload_and_headers() -> None:
     settings = Settings(
         _env_file=None,
         openrouter_api_key=SecretStr("segredo-de-teste"),
-        openrouter_model="modelo/teste",
+        openrouter_model="mistralai/mistral-large",
     )
     client = OpenRouterClient(settings, transport=httpx.MockTransport(handler))
 
@@ -38,7 +38,25 @@ def test_sends_expected_payload_and_headers() -> None:
     assert captured["authorization"] == "Bearer segredo-de-teste"
     assert captured["referer"] == "http://localhost:5173"
     body = bytes(captured["body"]).decode()
-    assert '"model":"modelo/teste"' in body
+    assert '"model":"mistralai/mistral-large"' in body
+
+
+def test_legacy_gpt_environment_still_sends_only_mistral(monkeypatch) -> None:
+    import json
+
+    monkeypatch.setenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
+    captured = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(json.loads(request.content))
+        return httpx.Response(200, json={"choices": [{"message": {"content": "Teste."}}]})
+
+    settings = Settings(_env_file=None, openrouter_api_key=SecretStr("segredo-de-teste"))
+    asyncio.run(OpenRouterClient(settings, transport=httpx.MockTransport(handler)).complete(
+        [{"role": "user", "content": "Olá"}]
+    ))
+    assert captured[0]["model"] == "mistralai/mistral-large"
+    assert "models" not in captured[0]  # Sem fallback para outro modelo.
 
 
 @pytest.mark.parametrize(

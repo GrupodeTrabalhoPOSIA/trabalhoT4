@@ -1,10 +1,14 @@
 """Configuração tipada da aplicação a partir do ambiente."""
 
 from functools import lru_cache
+import logging
 from urllib.parse import urlparse
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+GENERATION_MODEL = "mistralai/mistral-large"
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -23,7 +27,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     openrouter_api_key: SecretStr | None = None
-    openrouter_model: str = "openai/gpt-4o-mini"
+    openrouter_model: str = Field(default=GENERATION_MODEL, frozen=True)
     openrouter_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
     openrouter_max_tokens: int = Field(default=500, ge=50, le=4000)
     openrouter_temperature: float = Field(default=0.1, ge=0, le=2)
@@ -46,6 +50,17 @@ class Settings(BaseSettings):
     max_message_length: int = Field(default=2000, ge=100, le=20000)
     max_history_messages: int = Field(default=10, ge=0, le=50)
     max_upload_size_mb: int = Field(default=10, ge=1, le=100)
+
+    @field_validator("openrouter_model", mode="before")
+    @classmethod
+    def preserve_t1_model(cls, value: object) -> str:
+        """Mantém a decisão acadêmica mesmo com um .env/deploy antigo."""
+        if value != GENERATION_MODEL:
+            logger.warning(
+                "OPENROUTER_MODEL divergente foi ignorado. "
+                "O projeto mantém mistralai/mistral-large, escolhido no T1."
+            )
+        return GENERATION_MODEL
 
     @field_validator(
         "openrouter_api_key",

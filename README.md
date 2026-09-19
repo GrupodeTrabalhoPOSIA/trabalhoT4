@@ -116,11 +116,11 @@ Quando nenhum trecho atinge o limiar de relevância, a API recusa a pergunta sem
 - até 5 trechos por busca;
 - relevância mínima de 0,35;
 - contexto máximo de 6.000 caracteres;
-- modelo OpenRouter padrão: `openai/gpt-4o-mini`.
+- modelo de geração: `mistralai/mistral-large`, escolhido no Trabalho 1 e mantido no chat RAG, na triagem e nos especialistas do T4.
 
-Todos esses valores podem ser alterados em `BACKEND/.env`. A justificativa e o conjunto de perguntas estão em `BACKEND/evaluation/`.
+Os parâmetros operacionais podem ser ajustados em `BACKEND/.env`, mas o modelo de geração é fixado em `mistralai/mistral-large` para preservar a continuidade entre entregas. Um valor antigo/divergente em `OPENROUTER_MODEL` é ignorado com aviso no log; a configuração efetiva e as chamadas permanecem no Mistral Large. Não há fallback para outro modelo. A justificativa e o conjunto de perguntas estão em `BACKEND/evaluation/`.
 
-O serviço valida vetores de 1024 dimensões, correspondentes ao tipo `vector(1024)` após a migração 002. O cliente não envia o parâmetro opcional de redução de dimensão ao Mistral. Trocar o modelo exige reindexar todos os documentos, mesmo quando a dimensão for mantida, pois modelos diferentes geram espaços vetoriais incompatíveis. Alterar a dimensão também exige uma nova migração.
+O serviço valida vetores de 1024 dimensões, correspondentes ao tipo `vector(1024)` após a migração 002. O cliente não envia o parâmetro opcional de redução de dimensão ao Mistral. Trocar o modelo de **embeddings** exige reindexar todos os documentos, mesmo quando a dimensão for mantida, pois modelos diferentes geram espaços vetoriais incompatíveis. Alterar a dimensão também exige uma nova migração. Mistral Embed é usado somente na recuperação de documentos; não substitui Mistral Large na geração textual.
 
 ## Configuração em produção
 
@@ -152,6 +152,7 @@ No serviço que executa o FastAPI, configure como segredos:
 
 ```dotenv
 OPENROUTER_API_KEY=...
+OPENROUTER_MODEL=mistralai/mistral-large
 OPENROUTER_EMBEDDING_MODEL=mistralai/mistral-embed-2312
 EMBEDDING_DIMENSIONS=1024
 SUPABASE_DB_URL=postgresql://postgres.PROJECT_REF:SENHA@aws-0-REGIAO.pooler.supabase.com:5432/postgres
@@ -239,8 +240,14 @@ dependendo da configuração do banco para as migrações do RAG.
 Publique backend e frontend juntos. O Dockerfile inclui `prompts/` e `knowledge/`;
 mantenha Docker Command vazio. Na Vercel, mantenha `VITE_API_URL` terminando em
 `/api/v1` e faça novo build. `GET /api/v1/t4/config` permite conferir modelo,
-parâmetros e versões sem expor segredos. O modelo é o `OPENROUTER_MODEL` configurado;
-o baseline T2 usou Mistral Large e qualquer diferença precisa ser registrada.
+parâmetros e versões sem expor segredos. O modelo efetivo deve ser
+`mistralai/mistral-large`, preservando a escolha do T1 e o baseline T2.
+Mantenha esse valor em `OPENROUTER_MODEL` no Render, mesmo que o backend atualizado
+normalize valores antigos. Reinicie/republique o backend para aplicar a configuração.
+Se a API antiga ainda informar outro modelo, o frontend avisa e bloqueia as
+execuções reais do T4. Simulações continuam explicitamente identificadas.
+Registros anteriores com outro modelo não são reescritos nem aceitos como
+comparação equivalente com o baseline.
 
 Os arquivos exportados ficam na máquina do avaliador: transfira os resultados para
 `tests/resultados.csv`, salve o JSON em `evidencias/` e atualize a comparação em

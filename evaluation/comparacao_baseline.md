@@ -6,7 +6,7 @@ O Trabalho 3 registrou as seguintes métricas do baseline do T2: conclusão 100%
 
 ## Reaplicação obrigatória
 
-Os sete casos originais do Trabalho 2 devem ser executados novamente no fluxo integrado do T4. Esta tabela permanece deliberadamente sem resultados inventados até a execução real com o modelo configurado.
+Os sete casos originais do Trabalho 2 devem ser executados novamente no fluxo integrado do T4 com `mistralai/mistral-large`, escolhido no T1 e mantido em todo o projeto. Esta tabela permanece deliberadamente sem resultados inventados até a execução real. Não misture execuções antigas feitas com outro modelo nem reescreva seus metadados; elas não representam uma comparação equivalente com o baseline.
 
 | Métrica | Baseline T2 | T4 | Variação |
 |---|---:|---:|---:|

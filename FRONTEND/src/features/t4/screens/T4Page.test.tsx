@@ -9,19 +9,19 @@ vi.mock('../services/t4Api', () => ({ getFlowConfig: vi.fn(), runFlow: vi.fn() }
 const result: FlowResult = {
   execution_id: 'run-1', executed_at: '2026-09-19T12:00:00Z', question: 'Quantos dias?', effective_question: 'Quantos dias?', correction_applied: false,
   answer: 'Resposta: Até dois dias.\nRegra aplicada: Até dois dias por semana.\nPróximo passo: Definir com o gestor.', route: 'TRH-01', prompt_id: 'TRH-01', prompt_version: 'v0.3',
-  valid: true, retries: 0, latency_ms: 500, status: 'respondido', model: 'modelo-teste', temperature: 0.1, max_tokens: 500, mode: 'real', context: 'Política autorizada.',
+  valid: true, retries: 0, latency_ms: 500, status: 'respondido', model: 'mistralai/mistral-large', temperature: 0.1, max_tokens: 500, mode: 'real', context: 'Política autorizada.',
   trace: [{ id: 'routing', state: 'completed', detail: 'TRH-04 → TRH-01' }], attempts: [{ phase: 'routing', output: '{}', error: '' }],
 };
 
 describe('Protótipo T4 integrado', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getFlowConfig).mockResolvedValue({ model: 'modelo-teste', temperature: 0.1, max_tokens: 500, prompts: { 'TRH-01': 'v0.3', 'TRH-02': 'v0.1', 'TRH-03': 'v0.1', 'TRH-04': 'v0.1' }, knowledge_base: 'Política autorizada.', prompt_provenance: 'Reconstruídos; conferir originais.' });
+    vi.mocked(getFlowConfig).mockResolvedValue({ model: 'mistralai/mistral-large', temperature: 0.1, max_tokens: 500, prompts: { 'TRH-01': 'v0.3', 'TRH-02': 'v0.1', 'TRH-03': 'v0.1', 'TRH-04': 'v0.1' }, knowledge_base: 'Política autorizada.', prompt_provenance: 'Reconstruídos; conferir originais.' });
     vi.mocked(runFlow).mockResolvedValue(result);
   });
   it('executa caso, mostra rastro e mantém revisão pendente', async () => {
     const user = userEvent.setup(); render(<T4Page />);
-    await screen.findByText('modelo-teste');
+    await screen.findByText('mistralai/mistral-large');
     await user.click(screen.getByRole('button', { name: 'Dias remotos' }));
     await user.click(screen.getByRole('button', { name: 'Executar fluxo →' }));
     expect(await screen.findByRole('heading', { name: 'Resposta do copiloto' })).toBeInTheDocument();
@@ -59,5 +59,26 @@ describe('Protótipo T4 integrado', () => {
     await user.click(screen.getByRole('button', { name: 'Executar fluxo →' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível acessar');
     expect(screen.getByText('0 / 13 casos executados')).toBeInTheDocument();
+  });
+  it('bloqueia outro modelo informado por backend antigo, sem mascarar a configuração', async () => {
+    vi.mocked(getFlowConfig).mockResolvedValue({ model: 'openai/gpt-4o-mini', temperature: 0.1, max_tokens: 500, prompts: {}, knowledge_base: '', prompt_provenance: '' });
+    const user = userEvent.setup(); render(<T4Page />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Execuções reais estão bloqueadas');
+    expect(screen.getByText('openai/gpt-4o-mini')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Dias remotos' }));
+    expect(screen.getByRole('button', { name: 'Executar fluxo →' })).toBeDisabled();
+    fireEvent.submit(screen.getByLabelText('Pergunta ao copiloto').closest('form')!);
+    expect(runFlow).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: /Testes e evidências/ }));
+    await user.click(screen.getByRole('button', { name: 'Carregar E1 →' }));
+    expect(screen.getByRole('button', { name: 'Executar simulação →' })).toBeEnabled();
+  });
+  it('não libera geração real sem confirmar a configuração', async () => {
+    vi.mocked(getFlowConfig).mockRejectedValue(new Error('offline'));
+    const user = userEvent.setup(); render(<T4Page />);
+    await screen.findByText('Configuração indisponível');
+    await user.click(screen.getByRole('button', { name: 'Dias remotos' }));
+    expect(screen.getByRole('button', { name: 'Executar fluxo →' })).toBeDisabled();
+    expect(runFlow).not.toHaveBeenCalled();
   });
 });

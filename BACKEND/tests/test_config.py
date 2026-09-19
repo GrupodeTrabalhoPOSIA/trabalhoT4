@@ -3,7 +3,7 @@
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from app.core.config import Settings
+from app.core.config import GENERATION_MODEL, Settings
 
 
 def test_settings_have_safe_academic_defaults() -> None:
@@ -13,9 +13,24 @@ def test_settings_have_safe_academic_defaults() -> None:
     assert settings.retrieval_top_k == 5
     assert settings.max_upload_size_mb == 10
     assert settings.openrouter_api_key is None
+    assert settings.openrouter_model == GENERATION_MODEL == "mistralai/mistral-large"
     assert settings.openrouter_embedding_model == "mistralai/mistral-embed-2312"
     assert settings.embedding_dimensions == 1024
     assert settings.embedding_batch_size == 64
+
+
+@pytest.mark.parametrize("legacy_model", ["openai/gpt-4o-mini", "openrouter/auto", "outro/modelo", ""])
+def test_old_environment_cannot_replace_t1_model(monkeypatch, caplog, legacy_model):
+    monkeypatch.setenv("OPENROUTER_MODEL", legacy_model)
+    settings = Settings(_env_file=None)
+    assert settings.openrouter_model == GENERATION_MODEL
+    assert "OPENROUTER_MODEL divergente foi ignorado" in caplog.text
+
+
+def test_generation_model_cannot_be_changed_after_validation():
+    settings = Settings(_env_file=None)
+    with pytest.raises(ValidationError, match="frozen"):
+        settings.openrouter_model = "outro/modelo"
 
 
 def test_openrouter_key_is_masked() -> None:

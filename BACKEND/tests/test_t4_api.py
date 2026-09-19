@@ -83,6 +83,7 @@ def test_public_config_loads_templates_and_never_exposes_credentials():
     assert response.status_code == 200
     body = response.json()
     assert len(body['prompts']) == 4 and 'política-piloto' in body['knowledge_base']
+    assert body['model'] == 'mistralai/mistral-large'
     assert 'api_key' not in response.text and 'postgresql://' not in response.text
 
 

@@ -16,10 +16,15 @@ describe('Rastreabilidade das evidências', () => {
     expect(testCases.filter(c => c.mode !== 'real').map(c => c.id)).toEqual(['E1', 'E2']);
   });
   it('não troca a primeira falha por uma repetição bem-sucedida', () => {
-    const runs = baselineCases.map(c => ({ case_id: c.id, mode: 'real', latency_ms: 1000, review: { conclusion: true, format: true, factuality: c.id !== 'R2', refusal: true } } as Evidence));
+    const runs = baselineCases.map(c => ({ case_id: c.id, mode: 'real', model: 'mistralai/mistral-large', latency_ms: 1000, review: { conclusion: true, format: true, factuality: c.id !== 'R2', refusal: true } } as Evidence));
     runs.push({ ...runs[1], review: { ...runs[1].review, factuality: true } });
     expect(baselineMetrics(runs).find(m => m.label === 'Factualidade')?.after).toBe('85,71%');
     expect(baselineMetrics(runs).find(m => m.label === 'Latência média')?.after).toBe('1,00 s');
+  });
+  it('não mistura execuções de outro modelo na comparação com T2', () => {
+    const runs = [{ case_id: 'R1', mode: 'real', model: 'outro/modelo', review: { conclusion: true, format: true, factuality: true, refusal: true } } as Evidence];
+    expect(baselineMetrics(runs).every(metric => metric.after === 'Modelo divergente')).toBe(true);
+    expect(runs[0].model).toBe('outro/modelo');
   });
   it('exporta falhas e protege células com fórmulas', () => {
     const output = evidenceCsv([{ case_id: 'E2', question: '=SUM(1,1)', answer: 'a,"b"\nc', attempts: [{ phase: 'validation', error: 'INVALID_FORMAT', output: 'erro' }], review: { conclusion: null, format: null, factuality: null, refusal: null }, mode: 'invalid_specialist' } as Evidence]);

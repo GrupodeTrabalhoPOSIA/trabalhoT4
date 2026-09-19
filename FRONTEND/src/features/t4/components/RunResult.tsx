@@ -1,4 +1,5 @@
 import MarkdownContent from '@/features/chat/components/MarkdownContent';
+import { PROJECT_MODEL_ID } from '@/common/modelPolicy';
 import { statusLabels } from '../utils/cases';
 import type { Evidence, ReviewField } from '../utils/types';
 
@@ -8,6 +9,7 @@ export default function RunResult({ run, onReview, onCorrect }: { run: Evidence;
   return <section className="t4-result" aria-labelledby="result-heading">
     <div className="t4-result-heading"><span className={`t4-pill ${run.valid ? '' : 't4-pill--warning'}`}>{statusLabels[run.status] ?? run.status}</span><small>{run.mode === 'real' ? 'Execução real' : 'Simulação · sem chamada ao modelo'}</small></div>
     <h2 id="result-heading">Resposta do copiloto</h2>
+    {run.mode === 'real' && run.model !== PROJECT_MODEL_ID && <p className="t4-notice" role="alert">Esta execução informa um modelo diferente de {PROJECT_MODEL_ID}. O registro foi preservado, mas não pode ser usado como comparação com o baseline Mistral Large.</p>}
     <MarkdownContent content={run.answer} />
     <dl className="t4-run-metrics">
       <div><dt>Rota / prompt</dt><dd>{run.prompt_id} <small>{run.prompt_version}</small></dd></div>

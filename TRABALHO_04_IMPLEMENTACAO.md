@@ -6,6 +6,13 @@ O repositório existente foi preservado. O T4 foi acrescentado como uma camada d
 
 O fluxo implementado segue: entrada → validação → TRH-04 → verificação de dados → carregamento do template/versionamento → contexto mínimo → modelo → validação → resposta, pergunta, recusa/encaminhamento ou fallback.
 
+O modelo de geração é `mistralai/mistral-large`, escolhido no T1 e mantido no T2,
+T3, T4 e chat RAG. O backend normaliza configurações antigas/divergentes com aviso
+no log, sem substituir o modelo por outra família em caso de falha. O frontend
+exibe tanto o modelo esperado quanto o informado pela API e bloqueia novas
+execuções reais do T4 se a API antiga divergir. Mistral Embed continua exclusivo
+da recuperação de documentos; não é o modelo de geração.
+
 ## Análise do atendimento e integração web
 
 A versão anterior expunha somente o chat RAG em `/api/v1/chat`, enquanto o fluxo
@@ -27,7 +34,7 @@ React separa tela, componentes, estado e serviços na feature `t4`.
 | Recuperação de falhas | No máximo uma repetição total entre triagem e especialista; timeout e falha de conexão geram retorno seguro | Não há retry infinito nem estimativa de tokens/custos |
 | 13 casos | Aba Testes carrega `tests/casos.csv`, com cópia de apresentação sincronizada por teste | Execuções reais e avaliação ainda precisam ser salvas |
 | Evidências | CSV e JSON com ID/data, pergunta/correção, modo, modelo, parâmetros, rota, prompt/versão, resposta, contexto, tentativas, validação, latência e avaliação humana | Apenas na memória da página até exportar |
-| Baseline T2 | Sete perguntas originais na UI; métricas usam a primeira execução real de cada caso | Métricas ficam pendentes até execução/revisão; comparar modelos usados |
+| Baseline T2 | Sete perguntas originais na UI; métricas usam a primeira execução real de cada caso | Métricas ficam pendentes até execução/revisão; outro modelo sinaliza divergência sem sobrescrever evidências |
 
 ## Demonstração para o professor
 

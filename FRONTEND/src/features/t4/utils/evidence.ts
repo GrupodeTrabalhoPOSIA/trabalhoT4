@@ -1,4 +1,5 @@
 import { csvCell } from '@/common/download';
+import { PROJECT_MODEL_ID } from '@/common/modelPolicy';
 import { baselineCases } from './cases';
 import type { Evidence, ReviewField } from './types';
 
@@ -11,7 +12,9 @@ export function evidenceCsv(runs: Evidence[]): string {
 /** Baseline usa a PRIMEIRA execução real de cada ID; novas tentativas não apagam falhas. */
 export function baselineMetrics(runs: Evidence[]): { label: string; before: string; after: string }[] {
   const firstRuns = baselineCases.map(c => runs.find(r => r.case_id === c.id && r.mode === 'real'));
+  const modelDiverges = firstRuns.some(run => run && run.model !== PROJECT_MODEL_ID);
   const rate = (field: ReviewField, indexes = [0, 1, 2, 3, 4, 5, 6]): string => {
+    if (modelDiverges) return 'Modelo divergente';
     const selected = indexes.map(i => firstRuns[i]?.review[field]);
     if (selected.some(value => value === undefined || value === null)) return 'Pendente';
     return `${(selected.filter(Boolean).length / indexes.length * 100).toFixed(2).replace('.', ',')}%`;
@@ -21,6 +24,6 @@ export function baselineMetrics(runs: Evidence[]): { label: string; before: stri
     { label: 'Aderência ao formato', before: '100% · 7/7', after: rate('format') },
     { label: 'Factualidade', before: '71,43% · 5/7', after: rate('factuality') },
     { label: 'Recusa / encaminhamento', before: '100% · 2/2', after: rate('refusal', [5, 6]) },
-    { label: 'Latência média', before: '3,71 s', after: firstRuns.every(Boolean) ? `${(firstRuns.reduce((sum, r) => sum + (r?.latency_ms ?? 0), 0) / 7000).toFixed(2).replace('.', ',')} s` : 'Pendente' },
+    { label: 'Latência média', before: '3,71 s', after: modelDiverges ? 'Modelo divergente' : firstRuns.every(Boolean) ? `${(firstRuns.reduce((sum, r) => sum + (r?.latency_ms ?? 0), 0) / 7000).toFixed(2).replace('.', ',')} s` : 'Pendente' },
   ];
 }

@@ -12,6 +12,7 @@ function ChatPage() {
           Faça uma pergunta sobre a empresa. Minhas respostas serão baseadas nos
           documentos cadastrados na base de conhecimento. Para demonstrar o fluxo
           de prompts versionados e registrar evidências, acesse a aba Trabalho 4.
+          {' '}O modelo de geração do projeto é Mistral Large, mantido desde o T1.
         </p>
 
       </div>
