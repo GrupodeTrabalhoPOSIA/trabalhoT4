@@ -6,11 +6,12 @@ function ChatPage() {
   return (
     <section className="chat-page" aria-labelledby="chat-title">
       <div className="chat-welcome chat-welcome--compact">
-        <span className="eyebrow">Conhecimento que conversa</span>
+        <span className="eyebrow">Recurso complementar · Chat RAG</span>
         <h1 id="chat-title">Olá! Sou o assistente da Aurora Tech.</h1>
         <p>
           Faça uma pergunta sobre a empresa. Minhas respostas serão baseadas nos
-          documentos cadastrados na base de conhecimento.
+          documentos cadastrados na base de conhecimento. Para demonstrar o fluxo
+          de prompts versionados e registrar evidências, acesse a aba Trabalho 4.
         </p>
 
       </div>

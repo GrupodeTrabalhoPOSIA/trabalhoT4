@@ -193,9 +193,61 @@ npm run build
 
 Consulte [ESPECIFICACAO.md](./ESPECIFICACAO.md) para o escopo e [PLANO_IMPLEMENTACAO.md](./PLANO_IMPLEMENTACAO.md) para o histórico dos ciclos.
 
+## Portal das entregas — roteiro para correção
+
+A página inicial reúne as entregas **T1 a T4**. Cada página tem endereço próprio,
+compatível com hospedagem estática e com os botões voltar/avançar do navegador:
+
+| Página | Endereço após o domínio | Conteúdo |
+| --- | --- | --- |
+| Visão geral | `/#/entregas` | Percurso, contexto e acesso às quatro entregas |
+| Trabalho 1 | `/#/entregas/1` | Modelos, rubrica, resultados históricos e decisão |
+| Trabalho 2 | `/#/entregas/2` | Escopo, sete casos, métricas e falhas do baseline |
+| Trabalho 3 | `/#/entregas/3` | Biblioteca, versões, testes registrados e pendências |
+| Trabalho 4 | `/#/entregas/4` | Protótipo interativo, testes e mapa da entrega |
+| Sobre | `/#/sobre` | Descrição do projeto, contexto acadêmico e integrantes do grupo |
+
+T1–T3 funcionam sem backend e sintetizam os documentos em `entregas/`.
+Os PDFs originais de T1/T2 e o DOCX de T3 estão disponíveis para download a partir
+de cópias em `FRONTEND/public/entregas/`, incluídas no build da Vercel mesmo com
+Root Directory = `FRONTEND`. Os testes conferem o SHA-256 dessas cópias.
+Não há reexecução ou aprovação presumida dos experimentos históricos.
+
+O conteúdo está em `FRONTEND/src/features/deliveries/`. Ao atualizar os relatórios,
+revise o resumo em `utils/catalogue.ts`, a cópia pública e seu hash em
+`services/sourceReports.ts`. Não publique credenciais ou documentos confidenciais.
+Chat RAG e Base de conhecimento continuam acessíveis na navegação de laboratório.
+
 ## Trabalho 4 — fluxo textual integrado
 
-A evolução do Trabalho 4 foi adicionada sem remover o MVP RAG anterior. Consulte `TRABALHO_04_IMPLEMENTACAO.md`.
+A página **Trabalho 4 — Fluxo de Geração e Protótipo Textual**
+está conectada ao fluxo real em `POST /api/v1/t4/run`; o chat RAG e os uploads
+continuam disponíveis como recursos complementares. Consulte `TRABALHO_04_IMPLEMENTACAO.md`.
+
+Inicie backend e frontend conforme as instruções acima e abra a aba **Trabalho 4**:
+
+1. **Protótipo**: execute uma pergunta e inspecione etapas, prompt/versão, contexto, validação, latência, repetições e saídas brutas. A opção de corrigir solicita a pergunta completa; ela substitui a anterior.
+2. **Testes e evidências**: carregue os 13 casos; E1/E2 são simulações explícitas sem chamada externa. Os outros casos usam OpenRouter. Revise os resultados e exporte CSV e JSON antes de recarregar a página.
+3. Reaplique R1–R5 e L1–L2 do T2 e registre a avaliação humana. A tabela de comparação usa a primeira execução real de cada ID, sem substituir falhas por tentativas posteriores.
+4. **Mapa da entrega**: confira requisitos, artefatos e pendências antes de montar o pacote.
+
+O fluxo T4 usa `BACKEND/knowledge/politica_aurora_tech.txt`, não os documentos
+carregados no Supabase. Suas chamadas dependem de `OPENROUTER_API_KEY`; o modo de
+simulação não precisa dessa chave. No Docker, o início do serviço continua
+dependendo da configuração do banco para as migrações do RAG.
+
+Publique backend e frontend juntos. O Dockerfile inclui `prompts/` e `knowledge/`;
+mantenha Docker Command vazio. Na Vercel, mantenha `VITE_API_URL` terminando em
+`/api/v1` e faça novo build. `GET /api/v1/t4/config` permite conferir modelo,
+parâmetros e versões sem expor segredos. O modelo é o `OPENROUTER_MODEL` configurado;
+o baseline T2 usou Mistral Large e qualquer diferença precisa ser registrada.
+
+Os arquivos exportados ficam na máquina do avaliador: transfira os resultados para
+`tests/resultados.csv`, salve o JSON em `evidencias/` e atualize a comparação em
+`evaluation/comparacao_baseline.md`. Nenhum resultado é persistido no servidor ou
+marcado como aprovado automaticamente. Não inclua dados pessoais nos testes.
+A sessão do T4 é preservada ao navegar para outra entrega, mas não ao recarregar
+ou fechar a página: exporte as evidências antes disso.
 
 Para executar o protótipo textual do T4 após configurar `BACKEND/.env`:
 

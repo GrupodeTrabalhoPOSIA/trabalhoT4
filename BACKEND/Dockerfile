@@ -31,6 +31,8 @@ WORKDIR /app
 
 COPY --from=builder --chown=appuser:appgroup /opt/venv /opt/venv
 COPY --chown=appuser:appgroup database/supabase/migrations ./database/supabase/migrations
+COPY --chown=appuser:appgroup prompts ./prompts
+COPY --chown=appuser:appgroup knowledge ./knowledge
 
 USER appuser
 

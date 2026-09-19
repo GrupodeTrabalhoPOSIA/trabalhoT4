@@ -73,11 +73,12 @@ function KnowledgeBasePage() {
   return (
     <section className="knowledge-page" aria-labelledby="knowledge-title">
       <div className="page-heading">
-        <span className="eyebrow">Conteúdo do assistente</span>
+        <span className="eyebrow">Recurso complementar · Documentos do RAG</span>
         <h1 id="knowledge-title">Base de conhecimento</h1>
         <p>
           Aqui serão adicionados os documentos usados pelo chatbot para responder às
-          perguntas sobre a Aurora Tech.
+          perguntas sobre a Aurora Tech no Chat RAG. O protótipo do Trabalho 4 usa
+          sua própria política versionada para manter os testes reproduzíveis.
         </p>
       </div>
 

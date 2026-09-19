@@ -189,7 +189,7 @@ a:focus-visible {
 }
 
 .app-content {
-  width: min(100% - 32px, 1040px);
+  width: calc(100% - clamp(32px, 8vw, 144px));
   margin: 0 auto;
 }
 

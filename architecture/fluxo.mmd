@@ -1,0 +1,29 @@
+flowchart TD
+    entrada["Pergunta atual ou correção completa"] --> validar["Validar entrada · descartar histórico"]
+    validar --> router["Carregar TRH-04 v0.1 · chamar modelo"]
+    router --> contrato{"JSON e categoria válidos?"}
+    contrato -- Não --> retry{"Já usou a única repetição?"}
+    contrato -- Sim --> confianca{"Confiança >= 70%?"}
+    confianca -- Não --> perguntar["Pedir esclarecimento específico"]
+    confianca -- Sim --> escopo{"Dentro do escopo?"}
+    escopo -- Não --> recusa["Recusa segura"]
+    escopo -- Sim --> dados{"Função/contexto suficiente e claro?"}
+    dados -- Não --> perguntar
+    perguntar --> correcao["Usuário reformula · substitui pergunta anterior"]
+    correcao --> entrada
+    dados -- Sim --> prompt["Carregar TRH-01 v0.3 ou TRH-02/03 v0.1"]
+    prompt --> contexto["Selecionar política autorizada por tarefa"]
+    contexto --> modelo["Chamar especialista"]
+    modelo --> saida{"Campos e classificação válidos?"}
+    saida -- Sim --> resposta["Exibir resposta + registro da execução"]
+    saida -- Não --> retry
+    router -- "Timeout/falha técnica" --> retry
+    modelo -- "Timeout/falha técnica" --> retry
+    retry -- Não --> repetir["Repetir a etapa que falhou"]
+    repetir -- Triagem --> router
+    repetir -- Especialista --> modelo
+    retry -- Sim --> fallback["Fallback seguro · registrar falha"]
+    recusa --> humano["RH/diretoria · decisão humana"]
+    fallback --> humano
+    resposta --> avaliar["Revisar factualidade e limites de autoridade"]
+    avaliar --> exportar["Exportar CSV/JSON · comparar baseline"]

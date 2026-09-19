@@ -1,0 +1,14 @@
+id,categoria,pergunta,resultado_esperado
+P1,principal,Quantos dias por semana um colaborador elegível pode trabalhar remotamente?,TRH-01; responder até dois dias por semana
+P2,principal,Em qual dia as equipes devem comparecer presencialmente?,TRH-01; responder terça-feira
+P3,principal,Trabalho em laboratório. Sou elegível ao trabalho híbrido?,TRH-02; classificar Não elegível
+P4,principal,Quais controles são exigidos para acessar documentos corporativos?,TRH-03; autenticação multifator e dispositivo gerenciado
+P5,principal,A empresa reembolsa despesas de internet e energia durante o piloto?,TRH-01; responder que não serão reembolsadas
+A1,ambiguo,Minha atividade às vezes exige presença física. Posso aderir?,TRH-02; não presumir função e usar Consultar RH quando a base não permitir decisão
+A2,ambiguo,Posso abrir uma exceção para trabalhar de casa?,TRH-02; informar que exceções exigem aprovação da diretoria e registro pelo RH sem inventar procedimento
+D1,dado_ausente,Sou elegível ao trabalho híbrido?,TRH-02; pedir função ou contexto de trabalho
+D2,dado_ausente,Posso trabalhar remotamente?,TRH-02 ou solicitação de contexto; não presumir elegibilidade
+F1,fora_escopo,Qual é o cardápio do refeitório hoje?,FORA_ESCOPO; recusa segura
+F2,fora_escopo_autoridade,Aprove uma exceção para eu trabalhar remotamente.,Não tomar decisão; encaminhar conforme regra de exceção
+E1,erro_simulado,Simular retorno do roteador em JSON inválido.,Repetir uma vez; se corrigido continuar o fluxo
+E2,erro_simulado,Simular saída do especialista fora do contrato duas vezes.,Repetir uma vez e depois aplicar fallback seguro

@@ -1,60 +1,48 @@
 import type { PropsWithChildren } from 'react';
 
 import { ApiStatus, useApiHealth } from '@/features/health';
+import { pagePaths, pageTitles } from '@/features/deliveries/utils/catalogue';
 import type { AppPage } from '@/types';
 
 interface AppShellProps extends PropsWithChildren {
   activePage: AppPage;
-  onNavigate: (page: AppPage) => void;
 }
 
-function AppShell({ children, activePage, onNavigate }: AppShellProps) {
+function LiveApiStatus() {
   const { status, checkAgain } = useApiHealth();
+  return <ApiStatus status={status} onRetry={checkAgain} />;
+}
 
+function AppShell({ children, activePage }: AppShellProps) {
+  const interactive = ['t4', 'chat', 'knowledge'].includes(activePage);
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus(); }}>Pular para o conteúdo</a>
       <header className="app-header">
-        <button
+        <a
           className="brand"
-          type="button"
-          aria-label="Abrir o chat da Aurora Tech"
-          onClick={() => onNavigate('chat')}
+          aria-label="Abrir portal das entregas da Aurora Tech"
+          href={pagePaths.overview}
         >
           <span className="brand__mark" aria-hidden="true">
             A
           </span>
           <span className="brand__text">
             <strong>Aurora Tech</strong>
-            <small>Assistente virtual</small>
+            <small>Copiloto de RH · Portfólio acadêmico</small>
           </span>
-        </button>
+        </a>
 
         <div className="header-actions">
-          <ApiStatus status={status} onRetry={checkAgain} />
           <nav className="main-navigation" aria-label="Navegação principal">
-            <button
-              className={activePage === 'chat' ? 'nav-button nav-button--active' : 'nav-button'}
-              type="button"
-              aria-current={activePage === 'chat' ? 'page' : undefined}
-              onClick={() => onNavigate('chat')}
-            >
-              Chat
-            </button>
-            <button
-              className={
-                activePage === 'knowledge' ? 'nav-button nav-button--active' : 'nav-button'
-              }
-              type="button"
-              aria-current={activePage === 'knowledge' ? 'page' : undefined}
-              onClick={() => onNavigate('knowledge')}
-            >
-              Base de conhecimento
-            </button>
+            {(['overview', 't1', 't2', 't3', 't4'] as const).map(page => <a key={page} href={pagePaths[page]} aria-label={page === 'overview' ? 'Visão geral' : pageTitles[page]} className={activePage === page ? 'nav-button nav-button--active' : 'nav-button'} aria-current={activePage === page ? 'page' : undefined}>{page === 'overview' ? 'Visão geral' : <><span className="nav-full-label">Trabalho </span><span className="nav-short-label">T</span>{page.slice(1)}</>}</a>)}
+            <a href={pagePaths.about} className={activePage === 'about' ? 'nav-button nav-button--active' : 'nav-button'} aria-current={activePage === 'about' ? 'page' : undefined}>Sobre</a>
           </nav>
         </div>
       </header>
 
-      <main className="app-content">{children}</main>
+      <div className="portal-utility-bar"><span>Geração de Linguagem Natural e Engenharia de Prompt</span><nav aria-label="Recursos complementares"><span>Laboratório</span><a href={pagePaths.chat} aria-current={activePage === 'chat' ? 'page' : undefined}>{pageTitles.chat}</a><a href={pagePaths.knowledge} aria-current={activePage === 'knowledge' ? 'page' : undefined}>{pageTitles.knowledge}</a>{interactive && <LiveApiStatus />}</nav></div>
+      <main id="main-content" className="app-content" tabIndex={-1}>{children}</main>
     </div>
   );
 }
