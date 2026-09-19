@@ -4,11 +4,11 @@ import { sourceReports } from '../services/sourceReports';
 export type ReportId = 't1' | 't2' | 't3';
 export const pagePaths: Record<AppPage, string> = {
   overview: '#/entregas', about: '#/sobre', t1: '#/entregas/1', t2: '#/entregas/2',
-  t3: '#/entregas/3', t4: '#/entregas/4', chat: '#/chat', knowledge: '#/base',
+  t3: '#/entregas/3', t4: '#/entregas/4', t5: '#/entregas/5', chat: '#/chat', knowledge: '#/base',
 };
 export const pageTitles: Record<AppPage, string> = {
   overview: 'Portal das entregas', about: 'Sobre', t1: 'Trabalho 1', t2: 'Trabalho 2',
-  t3: 'Trabalho 3', t4: 'Trabalho 4', chat: 'Chat RAG', knowledge: 'Base de conhecimento',
+  t3: 'Trabalho 3', t4: 'Trabalho 4', t5: 'Trabalho 5', chat: 'Chat RAG', knowledge: 'Base de conhecimento',
 };
 export function pageFromHash(hash: string): AppPage {
   return (Object.keys(pagePaths) as AppPage[]).find(page => pagePaths[page] === hash) ?? 'overview';
@@ -31,6 +31,10 @@ export const deliveries = [
     description: 'Um fluxo executável com contexto, validação, recuperação e evidências inspecionáveis.',
     evidence: '13 casos planejados · comparação com T2', status: 'Protótipo em validação',
     outcome: 'Demonstração: executar, revisar e exportar.' },
+  { id: 't5', number: '05', verb: 'Avaliar', title: 'Protótipo multimodal',
+    description: 'Documentos participam da resposta, com fontes rastreáveis e um protocolo de avaliação.',
+    evidence: '20 casos · 2 avaliadores · gate preliminar', status: 'Candidata em avaliação',
+    outcome: 'Próximo passo: comprovar qualidade e segurança.' },
 ] as const;
 
 interface ReportTable { title: string; columns: string[]; rows: string[][] }

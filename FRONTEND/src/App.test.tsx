@@ -27,7 +27,7 @@ describe('Portal acadêmico', () => {
   it('abre a visão geral sem depender da API do protótipo', async () => {
     render(<App />);
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Um copiloto.');
-    expect(screen.getAllByRole('link', { name: /^Abrir Trabalho/ })).toHaveLength(4);
+    expect(screen.getAllByRole('link', { name: /^Abrir Trabalho/ })).toHaveLength(5);
     expect(screen.queryByText('API de teste')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Mistral Large' })).toHaveAttribute('href', 'https://openrouter.ai/mistralai/mistral-large');
     expect(getFlowConfig).not.toHaveBeenCalled();

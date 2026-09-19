@@ -1,5 +1,5 @@
 /** Páginas disponíveis na aplicação acadêmica. */
-export type AppPage = 'overview' | 'about' | 't1' | 't2' | 't3' | 't4' | 'chat' | 'knowledge';
+export type AppPage = 'overview' | 'about' | 't1' | 't2' | 't3' | 't4' | 't5' | 'chat' | 'knowledge';
 
 export type {
   ApiAvailability,

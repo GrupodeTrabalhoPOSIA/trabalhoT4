@@ -1,5 +1,35 @@
 # Aurora Tech Chatbot
 
+## Trabalho 5 — Protótipo Multimodal e Plano de Avaliação
+
+Abra `/#/entregas/5` para consultar uma política anexada, executar o catálogo de
+20 casos, aplicar a rubrica por dois avaliadores e exportar o gate preliminar.
+A página segue o portal T1–T4 e mantém sua sessão ao navegar entre entregas.
+Publique frontend **e backend**: as novas rotas são `GET /api/v1/t5/config` e
+`POST /api/v1/t5/run` (multipart: `question`, `mode`, `file` opcional).
+
+O T5 reutiliza os extratores, embeddings e especialistas do projeto. Cada anexo
+é recuperado isoladamente em memória, sem inserir documentos adversariais no
+Supabase. Sem arquivo, o fluxo textual do T4 permanece disponível. PDFs devem
+ter texto selecionável; não há OCR. Limites: 10 MB, 20 páginas PDF e 30.000
+caracteres extraídos incluindo sobreposições, com mínimo de 40 caracteres.
+Consultas reais dependem de OpenRouter e consomem créditos. As simulações E1/E2
+não fazem chamadas externas; falhas de entrada também não chamam o modelo.
+
+As fixtures sintéticas e o protocolo estão em `FRONTEND/public/entregas/t5/`.
+Para regenerar os PDFs, execute `python evaluation/generate_t5_fixtures.py` na
+pasta BACKEND. Os testes automatizados usam dublês; não são as 20 execuções
+acadêmicas e não comprovam resistência do modelo a injeção.
+
+Na aba Testes, carregue cada caso para preparar a pergunta e seu PDF. Modificar
+a entrada transforma a consulta em livre. Após executar, revise sucesso e
+eliminatórios. Avalie P1, P3, F2 e M1–M7 com duas pessoas independentes; preserve
+as notas e explique divergências. Exporte CSV de casos/resultados/rubrica,
+JSON das evidências e JSON do gate/matriz. As notas e resultados não são
+persistidos: exporte antes de recarregar ou fechar. Não há aprovação presumida.
+Metas, fórmulas, privacidade e pacote final estão no
+[protocolo v1](FRONTEND/public/entregas/t5/plano-avaliacao-v1.md).
+
 MVP acadêmico de um chatbot RAG para responder perguntas sobre a empresa fictícia Aurora Tech. Os documentos são transformados em embeddings pela API do OpenRouter, persistidos no Supabase com `pgvector` e recuperados antes de cada resposta gerada por um modelo acessado pelo mesmo provedor.
 
 O projeto não possui autenticação, perfis de usuário nem persistência de conversas. O histórico curto existe somente na página aberta no navegador.
@@ -196,16 +226,17 @@ Consulte [ESPECIFICACAO.md](./ESPECIFICACAO.md) para o escopo e [PLANO_IMPLEMENT
 
 ## Portal das entregas — roteiro para correção
 
-A página inicial reúne as entregas **T1 a T4**. Cada página tem endereço próprio,
+A página inicial reúne as entregas **T1 a T5**. Cada página tem endereço próprio,
 compatível com hospedagem estática e com os botões voltar/avançar do navegador:
 
 | Página | Endereço após o domínio | Conteúdo |
 | --- | --- | --- |
-| Visão geral | `/#/entregas` | Percurso, contexto e acesso às quatro entregas |
+| Visão geral | `/#/entregas` | Percurso, contexto e acesso às cinco entregas |
 | Trabalho 1 | `/#/entregas/1` | Modelos, rubrica, resultados históricos e decisão |
 | Trabalho 2 | `/#/entregas/2` | Escopo, sete casos, métricas e falhas do baseline |
 | Trabalho 3 | `/#/entregas/3` | Biblioteca, versões, testes registrados e pendências |
 | Trabalho 4 | `/#/entregas/4` | Protótipo interativo, testes e mapa da entrega |
+| Trabalho 5 | `/#/entregas/5` | Documentos, testes, rubrica e gate preliminar |
 | Sobre | `/#/sobre` | Descrição do projeto, contexto acadêmico e integrantes do grupo |
 
 T1–T3 funcionam sem backend e sintetizam os documentos em `entregas/`.
