@@ -124,10 +124,10 @@ class T4FlowService:
             {"role": "system", "content": routing_prompt},
             {"role": "user", "content": clean},
         ], "routing", lambda raw: self._parse_route(raw) is not None)
-        if raw_route is None:
+        decision = self._parse_route(raw_route) if raw_route is not None else None
+        if decision is None:
             step("routing", "failed", "Roteamento não validado. Especialista não foi chamado.")
             return finish("Não foi possível classificar a pergunta com segurança. Tente novamente mais tarde ou consulte o RH Responde.", "FORA_ESCOPO", "TRH-04", False, "fallback_roteamento")
-        decision = json.loads(raw_route)
         route: Route = decision["prompt_destino"]
         step("routing", "completed", f"TRH-04 v0.1 → {route}; confiança {decision['confianca']:.0%}.")
         if decision["confianca"] < 0.7:
@@ -180,9 +180,14 @@ class T4FlowService:
         return " ".join(sentence for sentence in sentences if any(word in sentence.lower() for word in keywords))
 
     @staticmethod
-    def _parse_route(raw: str) -> Route | None:
+    def _parse_route(raw: str) -> dict[str, Any] | None:
+        # Aceita somente um bloco completo, sem extrair JSON de texto livre.
+        text = raw.strip()
+        fenced = re.fullmatch(r"```(?:json)?[ \t]*\r?\n(.*?)\r?\n```", text, re.DOTALL | re.IGNORECASE)
+        if fenced:
+            text = fenced.group(1)
         try:
-            data = json.loads(raw)
+            data = json.loads(text)
         except json.JSONDecodeError:
             return None
         if not isinstance(data, dict) or set(data) != {"prompt_destino", "confianca", "motivo"}:
@@ -195,7 +200,7 @@ class T4FlowService:
             return None
         if not isinstance(data["motivo"], str) or not data["motivo"].strip():
             return None
-        return route
+        return data
 
     @staticmethod
     def _valid_specialist_output(route: Route, raw: str) -> bool:

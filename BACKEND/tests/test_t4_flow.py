@@ -57,6 +57,44 @@ ROUTE = '{"prompt_destino":"TRH-01","confianca":0.98,"motivo":"regra"}'
 ANSWER = 'Resposta: Até dois dias.\nRegra aplicada: Até dois dias por semana.\nPróximo passo: Definir com o gestor.'
 
 
+@pytest.mark.parametrize("wrapper", ["{}", "```json\n{}\n```", "```\n{}\n```", " \r\n```JSON\r\n{}\r\n```\r\n "])
+def test_json_route_reaches_specialist_without_retry_and_preserves_raw_output(wrapper):
+    raw = wrapper.format(ROUTE)
+    flow = service([raw, ANSWER])
+    result = asyncio.run(flow.run("Quantos dias por semana posso trabalhar remotamente?"))
+    assert result.valid and result.status == "respondido"
+    assert result.route == "TRH-01" and result.retries == 0
+    assert len(flow.llm_client.calls) == 2
+    assert result.attempts[0] == {"phase": "routing", "output": raw, "error": ""}
+
+
+@pytest.mark.parametrize("raw", [
+    "Texto antes\n```json\n" + ROUTE + "\n```",
+    "```json\n" + ROUTE + "\n```\nTexto depois",
+    "```json\n" + ROUTE + "\n```\n```json\n" + ROUTE + "\n```",
+    "```python\n" + ROUTE + "\n```",
+    "```json\n" + ROUTE,
+    '```json\n{"prompt_destino":"TRH-99","confianca":0.95,"motivo":"regra"}\n```',
+    '```json\n{"prompt_destino":"TRH-01","confianca":true,"motivo":"regra"}\n```',
+    '```json\n{"prompt_destino":"TRH-01","confianca":0.95}\n```',
+    '```json\n{"prompt_destino":"TRH-01","confianca":0.95,"motivo":"regra","extra":1}\n```',
+    '```json\n{"prompt_destino":"TRH-01","confianca":0.95,"motivo":"regra",}\n```',
+])
+def test_invalid_wrapped_route_still_falls_back_after_one_retry(raw):
+    flow = service([raw, raw])
+    result = asyncio.run(flow.run("Quantos dias remotos?"))
+    assert not result.valid and result.status == "fallback_roteamento"
+    assert result.retries == 1 and len(flow.llm_client.calls) == 2
+    assert all(attempt["error"] == "INVALID_FORMAT" for attempt in result.attempts)
+
+
+def test_fenced_low_confidence_keeps_clarification_without_specialist():
+    flow = service(['```json\n' + ROUTE.replace('0.98', '0.5') + '\n```'])
+    result = asyncio.run(flow.run("Pode explicar?"))
+    assert result.status == "perguntar_ambiguidade" and result.retries == 0
+    assert len(flow.llm_client.calls) == 1
+
+
 def rate_limit(wait=None):
     return AppError(status_code=502, code="MODEL_RATE_LIMITED", message="privado", diagnostic=ProviderDiagnostic(
         http_status=429, source="provider", reason="rate_limit", retry_after_seconds=wait,

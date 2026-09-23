@@ -45,7 +45,7 @@
     "BACKEND/app/services/rag/__init__.py": "a272fcaa07407a3b14ae0fa4dcea741d06382670ebb51eb98708c046a2e15b05",
     "BACKEND/app/services/rag/service.py": "bb8b2085082ee3de9582979e03197b4e66090f8aa7d79f880e7aae964cde4a0d",
     "BACKEND/app/services/t4/__init__.py": "7e02e49aaa0d81a1b40f5f90f3401c3bc0e5b540e7256fff28cdab31a5e9a9cd",
-    "BACKEND/app/services/t4/flow.py": "adfb8cd8a6a8c4b9ad562bd546973cb9f30928b317e36142d9d7723413d0d1d0",
+    "BACKEND/app/services/t4/flow.py": "75552d8df162065e20985e97f408a253884d8cf1ba1d97ce9b83cf946166a818",
     "BACKEND/app/services/vector_store/__init__.py": "62b9d73d68cff0f5d30ae95e0e4175c3c727e3c0f8db60c5f6d51129ff0151cc",
     "BACKEND/app/services/vector_store/base.py": "de021070b05f4e414276d77d072e45f79904e6984dd6c0a0f963a0a5cf8e2dd8",
     "BACKEND/app/services/vector_store/supabase_store.py": "7d71bb435205301ca7452b7e49cda92d4b6767248a4bcec539f7d234b58fe851",
@@ -81,7 +81,7 @@
     "BACKEND/tests/test_rag_service.py": "ec4d63a3b4522009a8e4c31620b1c0f437719d1ec8464ce1e7af185bf869a81c",
     "BACKEND/tests/test_supabase_store.py": "775867a358a234f46fccf0f21e2596a5e853bf7586bfd3f8bdefbdb12d385e94",
     "BACKEND/tests/test_t4_api.py": "f86926f5d8edd75b65101004eb2c4c2d652d4e42094e2321932f107580498c76",
-    "BACKEND/tests/test_t4_flow.py": "173ff54c1224f909054355e189404379b39d4b53f6893e02c9ce144c9abe0b6f",
+    "BACKEND/tests/test_t4_flow.py": "1680ec25e9bdb8a63df11bdc90b78a8adaeb1ccf7a6f4e3cf6a31d947c46e354",
     "BACKEND/tests/test_t5_api.py": "fda64ec4f55d2cf8fe3ab8cdd754f583005cfc1dbd19287df163596f5eab244d",
     "FRONTEND/.env.example": "40dadd0f21556bcf2bf3eb3cff8862e57c6a067fc3db95962f0b66f91f3df6cc",
     "FRONTEND/eslint.config.js": "8f29e1559cefa06b6df9af7178461314387b6199d6712c5050731ba4dc9273f3",
@@ -194,7 +194,7 @@
   },
   "configuration": {
     "candidate": "t5-v1",
-    "model": "mistralai/mistral-large",
+    "model": "mistralai/mistral-large-2407",
     "max_bytes": 10485760,
     "max_pages": 20,
     "max_characters": 30000,
@@ -232,7 +232,7 @@
     "privacidade-v1.pdf": "531c196e2f46d22d9681621a459ea1be020f18cbffd32a86feff1e0f67f9ac2f",
     "sem-texto-v1.pdf": "aebd01899c10fa67439eafb2bd01126c6dfab101447b87102c32c9673e1c8a84"
   },
-  "release_id": "t6-c357d114e5cde3124279b6df",
-  "created_at": "2026-09-23T10:09:21.548348+00:00",
-  "source_commit": "e8d3d7cf528c227d0896ecb6d63126d310f3b497"
+  "release_id": "t6-cb78621fc1e726b4b07e9321",
+  "created_at": "2026-09-23T10:30:51.530902+00:00",
+  "source_commit": "838f9f37f2ce369e0ccb1e8cc1399391f9d16c93"
 }
