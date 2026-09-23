@@ -23,7 +23,7 @@ def freeze():
         'FRONTEND/src/**/*.ts', 'FRONTEND/src/**/*.tsx', 'FRONTEND/src/**/*.css', 'FRONTEND/src/**/*.json', 'FRONTEND/src/**/*.csv',
         'FRONTEND/public/entregas/**/*.pdf', 'FRONTEND/public/entregas/**/*.docx', 'FRONTEND/public/entregas/**/*.md', 'FRONTEND/public/entregas/**/*.svg',
         'FRONTEND/package*.json', 'FRONTEND/tsconfig*.json', 'FRONTEND/*.config.*', 'FRONTEND/index.html', 'FRONTEND/.env.example',
-        'README.md', 'render.yaml', '.gitignore',
+        'README.md', 'INTEGRACOES.md', 'render.yaml', '.gitignore',
     ]
     paths = sorted({p for pattern in patterns for p in ROOT.glob(pattern) if p.is_file() and p != frontend_manifest})
     contents = {p.relative_to(ROOT).as_posix(): canonical_bytes(p) for p in paths}

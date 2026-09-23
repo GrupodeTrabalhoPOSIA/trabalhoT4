@@ -3,7 +3,7 @@
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from app.core.config import GENERATION_MODEL, Settings
+from app.core.config import Settings
 
 
 def test_settings_have_safe_academic_defaults() -> None:
@@ -13,24 +13,51 @@ def test_settings_have_safe_academic_defaults() -> None:
     assert settings.retrieval_top_k == 5
     assert settings.max_upload_size_mb == 10
     assert settings.openrouter_api_key is None
-    assert settings.openrouter_model == GENERATION_MODEL == "mistralai/mistral-large"
+    assert settings.openrouter_model == "mistralai/mistral-large"
     assert settings.openrouter_embedding_model == "mistralai/mistral-embed-2312"
     assert settings.embedding_dimensions == 1024
     assert settings.embedding_batch_size == 64
 
 
-@pytest.mark.parametrize("legacy_model", ["openai/gpt-4o-mini", "openrouter/auto", "outro/modelo", ""])
-def test_old_environment_cannot_replace_t1_model(monkeypatch, caplog, legacy_model):
-    monkeypatch.setenv("OPENROUTER_MODEL", legacy_model)
-    settings = Settings(_env_file=None)
-    assert settings.openrouter_model == GENERATION_MODEL
-    assert "OPENROUTER_MODEL divergente foi ignorado" in caplog.text
+def test_default_env_path_is_independent_of_working_directory(monkeypatch, tmp_path):
+    from pathlib import Path
+
+    expected = Path(__file__).resolve().parents[1] / ".env"
+    monkeypatch.chdir(tmp_path)
+    assert Settings.model_config["env_file"] == expected
 
 
-def test_generation_model_cannot_be_changed_after_validation():
-    settings = Settings(_env_file=None)
-    with pytest.raises(ValidationError, match="frozen"):
-        settings.openrouter_model = "outro/modelo"
+def test_env_file_precedence_and_secret_whitespace(monkeypatch, tmp_path):
+    path = tmp_path / ".env"
+    path.write_text('OPENROUTER_API_KEY="  file-secret  "\n', encoding="utf-8")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    assert Settings(_env_file=path).require_openrouter_api_key() == "file-secret"
+    monkeypatch.setenv("OPENROUTER_API_KEY", "  runtime-secret  ")
+    assert Settings(_env_file=path).require_openrouter_api_key() == "runtime-secret"
+
+
+@pytest.mark.parametrize("model", ["mistralai/mistral-large", "openai/gpt-4o-mini", "outro/modelo"])
+def test_model_comes_from_environment(monkeypatch, model):
+    monkeypatch.setenv("OPENROUTER_MODEL", model)
+    assert Settings(_env_file=None).openrouter_model == model
+
+
+@pytest.mark.parametrize("value", [None, "", "   "])
+def test_model_is_required_without_fallback(monkeypatch, value):
+    monkeypatch.delenv("OPENROUTER_MODEL", raising=False)
+    if value is not None:
+        monkeypatch.setenv("OPENROUTER_MODEL", value)
+    with pytest.raises(ValidationError, match="openrouter_model"):
+        Settings(_env_file=None)
+
+
+def test_model_from_dotenv_and_environment_priority(monkeypatch, tmp_path):
+    monkeypatch.delenv("OPENROUTER_MODEL", raising=False)
+    path = tmp_path / ".env"
+    path.write_text("OPENROUTER_MODEL=vendor/from-file\n", encoding="utf-8")
+    assert Settings(_env_file=path).openrouter_model == "vendor/from-file"
+    monkeypatch.setenv("OPENROUTER_MODEL", "vendor/from-process")
+    assert Settings(_env_file=path).openrouter_model == "vendor/from-process"
 
 
 def test_openrouter_key_is_masked() -> None:
@@ -41,9 +68,18 @@ def test_openrouter_key_is_masked() -> None:
     assert settings.require_openrouter_api_key() == "segredo-de-teste"
 
 
-def test_mistral_requires_1024_dimensions() -> None:
-    with pytest.raises(ValidationError, match="EMBEDDING_DIMENSIONS=1024"):
-        Settings(_env_file=None, embedding_dimensions=384)
+@pytest.mark.parametrize("value", [None, "", "   "])
+def test_embedding_model_is_required(monkeypatch, value):
+    monkeypatch.delenv("OPENROUTER_EMBEDDING_MODEL", raising=False)
+    if value is not None:
+        monkeypatch.setenv("OPENROUTER_EMBEDDING_MODEL", value)
+    with pytest.raises(ValidationError, match="openrouter_embedding_model"):
+        Settings(_env_file=None)
+
+
+def test_embedding_model_from_environment(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_EMBEDDING_MODEL", "vendor/embedding")
+    assert Settings(_env_file=None).openrouter_embedding_model == "vendor/embedding"
 
 
 def test_openrouter_key_is_validated_only_when_used() -> None:

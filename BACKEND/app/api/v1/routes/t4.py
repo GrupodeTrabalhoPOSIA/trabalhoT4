@@ -55,6 +55,8 @@ def configuration():
     settings = get_settings()
     return {
         "model": settings.openrouter_model,
+        "embedding_model": settings.openrouter_embedding_model,
+        "baseline_model": settings.baseline_model,
         "temperature": settings.openrouter_temperature,
         "max_tokens": settings.openrouter_max_tokens,
         "prompts": PROMPT_VERSIONS,

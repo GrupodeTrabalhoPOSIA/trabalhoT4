@@ -41,7 +41,7 @@ def test_sends_expected_payload_and_headers() -> None:
     assert '"model":"mistralai/mistral-large"' in body
 
 
-def test_legacy_gpt_environment_still_sends_only_mistral(monkeypatch) -> None:
+def test_http_payload_uses_model_from_environment(monkeypatch) -> None:
     import json
 
     monkeypatch.setenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
@@ -55,7 +55,7 @@ def test_legacy_gpt_environment_still_sends_only_mistral(monkeypatch) -> None:
     asyncio.run(OpenRouterClient(settings, transport=httpx.MockTransport(handler)).complete(
         [{"role": "user", "content": "Olá"}]
     ))
-    assert captured[0]["model"] == "mistralai/mistral-large"
+    assert captured[0]["model"] == "openai/gpt-4o-mini"
     assert "models" not in captured[0]  # Sem fallback para outro modelo.
 
 
@@ -133,6 +133,21 @@ def test_malformed_success_response_is_rejected() -> None:
         )
 
     assert captured.value.code == "MODEL_INVALID_RESPONSE"
+
+
+@pytest.mark.parametrize("code", [429, "429"])
+def test_error_inside_http_200_preserves_diagnostic(code):
+    response = httpx.Response(200, headers={"Retry-After": "7"}, json={
+        "error": {"code": code, "message": "segredo", "metadata": {"provider_code": "quota_exceeded"}},
+        "choices": [{"message": {"content": "resposta parcial"}}],
+    })
+    settings = Settings(_env_file=None, openrouter_api_key="test")
+    with pytest.raises(AppError) as caught:
+        asyncio.run(OpenRouterClient(settings, transport=httpx.MockTransport(lambda _: response)).complete([]))
+    assert caught.value.code == "MODEL_RATE_LIMITED"
+    assert caught.value.diagnostic.reason == "quota"
+    assert caught.value.diagnostic.retry_after_seconds == 7
+    assert "segredo" not in str(caught.value)
 
 
 def test_error_diagnostics_and_logs_never_expose_free_text_or_secrets(caplog) -> None:

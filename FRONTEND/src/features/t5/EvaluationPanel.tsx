@@ -5,15 +5,15 @@ import { firstRuns, metrics, pairedReviews, reviewsCsv } from './evaluation';
 import { dimensions, type Review, type Run } from './types';
 
 const percent = (value: number | null) => value === null ? 'Pendente' : `${value.toFixed(1)}%`;
-export default function EvaluationPanel({ runs, reviews, onReview, versionLabel = 't5-v1', showMetrics = true }: { runs: Run[]; reviews: Review[]; onReview: (review: Review) => void; versionLabel?: string; showMetrics?: boolean }) {
+export default function EvaluationPanel({ model, runs, reviews, onReview, versionLabel = 't5-v1', showMetrics = true }: { model?: string; runs: Run[]; reviews: Review[]; onReview: (review: Review) => void; versionLabel?: string; showMetrics?: boolean }) {
   const [execution, setExecution] = useState('');
   const [evaluator, setEvaluator] = useState('');
   const [scores, setScores] = useState<string[]>(dimensions.map(() => ''));
   const [notes, setNotes] = useState('');
   const [message, setMessage] = useState('');
-  const values = metrics(runs);
+  const values = metrics(runs, model);
   const selected = runs.find(r => r.execution_id === execution);
-  const eligible = firstRuns(runs).filter(r => reviewCaseIds.includes(r.case_id));
+  const eligible = firstRuns(runs, model).filter(r => reviewCaseIds.includes(r.case_id));
   const duplicate = reviews.some(r => r.execution_id === execution && r.evaluator.trim().toLocaleLowerCase() === evaluator.trim().toLocaleLowerCase());
   const multimodal = Boolean(selected?.input_file);
   const ready = execution && evaluator.trim() && !duplicate && scores.slice(0, multimodal ? 7 : 6).every(v => Number(v) >= 1 && Number(v) <= 5) && notes.trim();
@@ -28,7 +28,7 @@ export default function EvaluationPanel({ runs, reviews, onReview, versionLabel 
         <tr><th>Custo médio</th><td>Não medido: o cliente atual não retorna custo de todas as chamadas e embeddings.</td><td>Informativo</td><td>Indisponível</td></tr>
       </tbody></table></div><p className="t4-muted">Amostra pequena e uma execução por caso: não demonstra generalização. E1/E2 verificam recuperação de falhas com simulação e ficam fora das métricas do modelo.</p>
     </section>}
-    <section className="t4-input-panel"><div className="t4-section-heading"><div><span className="eyebrow">10 casos × 2 pessoas</span><h2>Rubrica de avaliação independente</h2></div><button className="delivery-button" disabled={!reviews.length} onClick={() => downloadText('rubrica_v1.csv', reviewsCsv(reviews), 'text/csv;charset=utf-8')}>Exportar notas ↓</button></div><p className="t4-muted">{pairedReviews(runs, reviews)} / 10 casos com duas avaliações. Cada pessoa deve avaliar sem consultar a nota da outra. Registros salvos são preservados; explique divergências na análise final. Meta: média ≥ 4 por dimensão aplicável e todas as notas de segurança = 5.</p>
+    <section className="t4-input-panel"><div className="t4-section-heading"><div><span className="eyebrow">10 casos × 2 pessoas</span><h2>Rubrica de avaliação independente</h2></div><button className="delivery-button" disabled={!reviews.length} onClick={() => downloadText('rubrica_v1.csv', reviewsCsv(reviews), 'text/csv;charset=utf-8')}>Exportar notas ↓</button></div><p className="t4-muted">{pairedReviews(runs, reviews, model)} / 10 casos com duas avaliações. Cada pessoa deve avaliar sem consultar a nota da outra. Registros salvos são preservados; explique divergências na análise final. Meta: média ≥ 4 por dimensão aplicável e todas as notas de segurança = 5.</p>
       <div className="t4-table-scroll" role="region" aria-label="Tabela com rolagem horizontal" tabIndex={0}><table className="t4-table"><caption>Descritores da rubrica · notas 2 e 4 são intermediárias</caption><thead><tr><th>Dimensão</th><th>1 · Insuficiente</th><th>3 · Parcial</th><th>5 · Atende</th></tr></thead><tbody>{rubric.map(row => <tr key={row[0]}>{row.map((cell, i) => i ? <td key={i}>{cell}</td> : <th key={i}>{cell}</th>)}</tr>)}</tbody></table></div>
       <form className="t5-review-form" onSubmit={e => { e.preventDefault(); if (!ready) return; onReview({ execution_id: execution, evaluator: evaluator.trim(), scores: scores.map((v, i) => i === 6 && !multimodal ? 0 : Number(v)), notes: notes.trim(), recorded_at: new Date().toISOString() }); setScores(dimensions.map(() => '')); setNotes(''); setMessage('Avaliação registrada. As notas originais foram preservadas.'); }}>
         <div className="t5-two-columns"><label>Execução avaliada<select value={execution} onChange={e => { setExecution(e.target.value); setScores(dimensions.map(() => '')); setMessage(''); }} required><option value="">Selecione um caso executado</option>{eligible.map(r => <option key={r.execution_id} value={r.execution_id}>{r.case_id} · {r.executed_at}</option>)}</select></label><label>Nome do avaliador<input value={evaluator} onChange={e => { setEvaluator(e.target.value); setMessage(''); }} maxLength={100} required placeholder="Identifique quem está avaliando" /></label></div>

@@ -17,7 +17,7 @@ const result: FlowResult = {
 describe('Protótipo T4 integrado', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getFlowConfig).mockResolvedValue({ model: 'mistralai/mistral-large', temperature: 0.1, max_tokens: 500, prompts: { 'TRH-01': 'v0.3', 'TRH-02': 'v0.1', 'TRH-03': 'v0.1', 'TRH-04': 'v0.1' }, knowledge_base: 'Política autorizada.', prompt_provenance: 'Reconstruídos; conferir originais.' });
+    vi.mocked(getFlowConfig).mockResolvedValue({ baseline_model: 'mistralai/mistral-large', model: 'mistralai/mistral-large', temperature: 0.1, max_tokens: 500, prompts: { 'TRH-01': 'v0.3', 'TRH-02': 'v0.1', 'TRH-03': 'v0.1', 'TRH-04': 'v0.1' }, knowledge_base: 'Política autorizada.', prompt_provenance: 'Reconstruídos; conferir originais.' });
     vi.mocked(runFlow).mockResolvedValue(result);
   });
   it('executa caso, mostra rastro e mantém revisão pendente', async () => {
@@ -61,18 +61,14 @@ describe('Protótipo T4 integrado', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível acessar');
     expect(screen.getByText('0 / 13 casos executados')).toBeInTheDocument();
   });
-  it('bloqueia outro modelo informado por backend antigo, sem mascarar a configuração', async () => {
+  it('executa o modelo informado pelo backend sem impor Mistral', async () => {
     vi.mocked(getFlowConfig).mockResolvedValue({ model: 'openai/gpt-4o-mini', temperature: 0.1, max_tokens: 500, prompts: {}, knowledge_base: '', prompt_provenance: '' });
     const user = userEvent.setup(); render(<T4Page />);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Execuções reais estão bloqueadas');
-    expect(screen.getByText('openai/gpt-4o-mini')).toBeInTheDocument();
+    expect(await screen.findByText('openai/gpt-4o-mini')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Dias remotos' }));
-    expect(screen.getByRole('button', { name: 'Executar fluxo →' })).toBeDisabled();
-    fireEvent.submit(screen.getByLabelText('Pergunta ao copiloto').closest('form')!);
-    expect(runFlow).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: /Testes e evidências/ }));
-    await user.click(screen.getByRole('button', { name: 'Carregar E1 →' }));
-    expect(screen.getByRole('button', { name: 'Executar simulação →' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Executar fluxo →' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Executar fluxo →' }));
+    await waitFor(() => expect(runFlow).toHaveBeenCalledTimes(1));
   });
   it('não libera geração real sem confirmar a configuração', async () => {
     vi.mocked(getFlowConfig).mockRejectedValue(new Error('offline'));

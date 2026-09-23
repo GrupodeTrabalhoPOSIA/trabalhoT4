@@ -93,7 +93,7 @@ export const reports: Record<ReportId, DeliveryReport> = {
         ['C · Mistral Large', 'Ano de 2024 inventado na extração, além de pequenas inferências.', 'Mesmo o melhor modelo precisa de restrições e revisão factual.'],
       ] },
     ],
-    decision: 'Mistral Large foi escolhido como modelo principal pela melhor qualidade e latência na amostra. Essa escolha é mantida nas entregas seguintes com o identificador mistralai/mistral-large. O relatório do T1 cita Aion-RP como contingência histórica; o projeto não faz substituição automática do modelo de geração.',
+    decision: 'Mistral Large foi escolhido como modelo principal pela melhor qualidade e latência na amostra. Essa é a escolha histórica registrada no T1; o modelo executado atualmente é definido no ambiente do backend. O relatório do T1 cita Aion-RP como contingência histórica; o projeto não faz substituição automática do modelo de geração.',
     handoff: 'O T2 leva essa escolha para um copiloto de RH com tarefas delimitadas e sete testes de referência.',
     limitations: [
       'Uma execução por combinação e um único texto-base: os resultados não demonstram repetibilidade nem generalização.',

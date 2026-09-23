@@ -15,15 +15,20 @@ describe('Rastreabilidade das evidências', () => {
     expect(testCases).toHaveLength(13);
     expect(testCases.filter(c => c.mode !== 'real').map(c => c.id)).toEqual(['E1', 'E2']);
   });
+  it('não presume o modelo do baseline', () => {
+    expect(baselineMetrics([]).every(metric => metric.after === 'Baseline não configurado')).toBe(true);
+    const runs = baselineCases.map(c => ({ case_id: c.id, mode: 'real', model: 'vendor/baseline', latency_ms: 1000, review: { conclusion: true, format: true, factuality: true, refusal: true } } as Evidence));
+    expect(baselineMetrics(runs, 'vendor/baseline')[0].after).toBe('100,00%');
+  });
   it('não troca a primeira falha por uma repetição bem-sucedida', () => {
     const runs = baselineCases.map(c => ({ case_id: c.id, mode: 'real', model: 'mistralai/mistral-large', latency_ms: 1000, review: { conclusion: true, format: true, factuality: c.id !== 'R2', refusal: true } } as Evidence));
     runs.push({ ...runs[1], review: { ...runs[1].review, factuality: true } });
-    expect(baselineMetrics(runs).find(m => m.label === 'Factualidade')?.after).toBe('85,71%');
-    expect(baselineMetrics(runs).find(m => m.label === 'Latência média')?.after).toBe('1,00 s');
+    expect(baselineMetrics(runs, 'mistralai/mistral-large').find(m => m.label === 'Factualidade')?.after).toBe('85,71%');
+    expect(baselineMetrics(runs, 'mistralai/mistral-large').find(m => m.label === 'Latência média')?.after).toBe('1,00 s');
   });
   it('não mistura execuções de outro modelo na comparação com T2', () => {
     const runs = [{ case_id: 'R1', mode: 'real', model: 'outro/modelo', review: { conclusion: true, format: true, factuality: true, refusal: true } } as Evidence];
-    expect(baselineMetrics(runs).every(metric => metric.after === 'Modelo divergente')).toBe(true);
+    expect(baselineMetrics(runs, 'mistralai/mistral-large').every(metric => metric.after === 'Modelo divergente')).toBe(true);
     expect(runs[0].model).toBe('outro/modelo');
   });
   it('exporta falhas e protege células com fórmulas', () => {

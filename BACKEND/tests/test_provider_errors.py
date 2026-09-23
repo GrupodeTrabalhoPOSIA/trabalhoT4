@@ -5,7 +5,18 @@ from datetime import datetime, timezone
 import httpx
 import pytest
 
-from app.services.llm.provider_errors import diagnose_provider_error, parse_retry_after
+from app.services.llm.provider_errors import diagnose_provider_error, normalize_provider_response, parse_retry_after
+
+
+@pytest.mark.parametrize("error", [None, [], {"code": True}, {"code": 200}, {"code": "secret"}])
+def test_invalid_embedded_error_does_not_look_like_success(error):
+    response = normalize_provider_response(httpx.Response(200, json={"error": error}))
+    assert response.status_code == 502
+
+
+def test_http_failure_takes_precedence_over_body_code():
+    response = httpx.Response(401, json={"error": {"code": 429}})
+    assert normalize_provider_response(response).status_code == 401
 
 
 @pytest.mark.parametrize(("value", "expected"), [

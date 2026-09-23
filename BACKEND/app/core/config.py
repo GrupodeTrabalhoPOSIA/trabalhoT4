@@ -1,21 +1,17 @@
 """Configuração tipada da aplicação a partir do ambiente."""
 
 from functools import lru_cache
-import logging
+from pathlib import Path
 from urllib.parse import urlparse
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-GENERATION_MODEL = "mistralai/mistral-large"
-logger = logging.getLogger(__name__)
-
-
 class Settings(BaseSettings):
     """Configurações do backend, carregadas de variáveis de ambiente ou `.env`."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=Path(__file__).resolve().parents[2] / ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -27,13 +23,15 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     openrouter_api_key: SecretStr | None = None
-    openrouter_model: str = Field(default=GENERATION_MODEL, frozen=True)
+    openrouter_model: str = Field(min_length=1)
     openrouter_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
     openrouter_max_tokens: int = Field(default=500, ge=50, le=4000)
     openrouter_temperature: float = Field(default=0.1, ge=0, le=2)
     openrouter_referer: str = "http://localhost:5173"
     openrouter_app_title: str = "Aurora Tech Chatbot"
-    openrouter_embedding_model: str = "mistralai/mistral-embed-2312"
+    openrouter_embedding_model: str = Field(min_length=1)
+    baseline_model: str | None = None
+    embedding_send_dimensions: bool = False
     embedding_dimensions: int = Field(default=1024, ge=1, le=3072)
     embedding_batch_size: int = Field(default=64, ge=1, le=256)
 
@@ -51,18 +49,17 @@ class Settings(BaseSettings):
     max_history_messages: int = Field(default=10, ge=0, le=50)
     max_upload_size_mb: int = Field(default=10, ge=1, le=100)
 
-    @field_validator("openrouter_model", mode="before")
+    @field_validator("openrouter_model", "openrouter_embedding_model", mode="before")
     @classmethod
-    def preserve_t1_model(cls, value: object) -> str:
-        """Mantém a decisão acadêmica mesmo com um .env/deploy antigo."""
-        if value != GENERATION_MODEL:
-            logger.warning(
-                "OPENROUTER_MODEL divergente foi ignorado. "
-                "O projeto mantém mistralai/mistral-large, escolhido no T1."
-            )
-        return GENERATION_MODEL
+    def validate_model(cls, value: object) -> object:
+        if isinstance(value, str):
+            value = value.strip()
+        if not value:
+            raise ValueError("O modelo deve ser configurado e não pode ser vazio.")
+        return value
 
     @field_validator(
+        "baseline_model",
         "openrouter_api_key",
         "supabase_db_url",
         mode="before",
@@ -70,18 +67,13 @@ class Settings(BaseSettings):
     @classmethod
     def empty_configuration_is_none(cls, value: object) -> object:
         """Trata valores vazios do arquivo de exemplo como ausentes."""
-        if isinstance(value, str) and not value.strip():
-            return None
+        if isinstance(value, str):
+            return value.strip() or None
         return value
 
     @model_validator(mode="after")
     def validate_chunk_configuration(self) -> "Settings":
         """Valida relações entre limites configuráveis."""
-        if (
-            self.openrouter_embedding_model == "mistralai/mistral-embed-2312"
-            and self.embedding_dimensions != 1024
-        ):
-            raise ValueError("Mistral Embed 2312 exige EMBEDDING_DIMENSIONS=1024.")
         if self.chunk_overlap >= self.chunk_size:
             raise ValueError("CHUNK_OVERLAP deve ser menor que CHUNK_SIZE.")
         if self.supabase_pool_min_size > self.supabase_pool_max_size:

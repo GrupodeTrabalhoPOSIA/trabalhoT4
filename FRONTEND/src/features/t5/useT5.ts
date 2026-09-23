@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, apiRequest } from '@/services/apiClient';
-import { PROJECT_MODEL_ID } from '@/common/modelPolicy';
 import { candidate } from './data';
 import type { Case, Config, Result, Review, Run } from './types';
 import { publishT5Session } from '@/features/t6/evidence';
@@ -28,8 +27,8 @@ export function useT5() {
 
   async function execute(question: string, file: File | null, selectedCase?: Case) {
     if (controller.current || !question.trim()) return;
-    if (config?.candidate !== candidate || config?.model !== PROJECT_MODEL_ID) {
-      setError('A API precisa confirmar a candidata t5-v1 e o Mistral Large. Atualize o backend e recarregue a página.'); return;
+    if (config?.candidate !== candidate || !config?.model?.trim()) {
+      setError('A API precisa confirmar a candidata t5-v1 e o modelo configurado. Atualize o backend e recarregue a página.'); return;
     }
     const request = new AbortController(); controller.current = request;
     setBusy(true); setError('');

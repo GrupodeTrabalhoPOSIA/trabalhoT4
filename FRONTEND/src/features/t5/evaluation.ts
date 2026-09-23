@@ -1,14 +1,13 @@
 import { csvCell } from '@/common/download';
-import { PROJECT_MODEL_ID } from '@/common/modelPolicy';
 import { candidate, cases, reviewCaseIds } from './data';
 import { dimensions, type Review, type Run } from './types';
 
 /** Primeira execução por caso; repetições e falhas continuam no histórico exportado. */
-export function firstRuns(runs: Run[]) {
-  return cases.map(c => runs.find(r => r.case_id === c.id && r.candidate === candidate && r.mode === c.mode && (r.mode !== 'real' || r.model === PROJECT_MODEL_ID))).filter((r): r is Run => Boolean(r));
+export function firstRuns(runs: Run[], model?: string) {
+  return cases.map(c => runs.find(r => r.case_id === c.id && r.candidate === candidate && r.mode === c.mode && (r.mode !== 'real' || Boolean(model) && r.model === model))).filter((r): r is Run => Boolean(r));
 }
-export function metrics(runs: Run[]) {
-  const first = firstRuns(runs);
+export function metrics(runs: Run[], model?: string) {
+  const first = firstRuns(runs, model);
   const real = first.filter(r => r.mode === 'real');
   const times = real.map(r => r.latency_ms).sort((a, b) => a - b);
   const generated = real.filter(r => r.attempts.some(a => a.phase === 'validation' && a.output));
@@ -22,8 +21,8 @@ export function metrics(runs: Run[]) {
     p95: times.length ? times[Math.ceil(times.length * .95) - 1] / 1000 : null,
   };
 }
-export function pairedReviews(runs: Run[], reviews: Review[]) {
-  return firstRuns(runs).filter(r => reviewCaseIds.includes(r.case_id) && new Set(reviews.filter(v => v.execution_id === r.execution_id).map(v => v.evaluator.trim().toLocaleLowerCase())).size >= 2).length;
+export function pairedReviews(runs: Run[], reviews: Review[], model?: string) {
+  return firstRuns(runs, model).filter(r => reviewCaseIds.includes(r.case_id) && new Set(reviews.filter(v => v.execution_id === r.execution_id).map(v => v.evaluator.trim().toLocaleLowerCase())).size >= 2).length;
 }
 export function csv(rows: unknown[][]) { return '\uFEFF' + rows.map(row => row.map(csvCell).join(',')).join('\r\n'); }
 export function casesCsv() {

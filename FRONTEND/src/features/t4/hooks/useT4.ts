@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError } from '@/services/apiClient';
-import { PROJECT_MODEL_ID } from '@/common/modelPolicy';
 import { getFlowConfig, runFlow } from '../services/t4Api';
 import type { Evidence, FlowConfig, ReviewField, TestCase } from '../utils/types';
 
@@ -22,8 +21,8 @@ export function useT4() {
 
   async function execute(question: string, correction: string, testCase?: TestCase) {
     if (controller.current) return;
-    if ((testCase?.mode ?? 'real') === 'real' && config?.model !== PROJECT_MODEL_ID) {
-      setError('Execução real bloqueada: o backend precisa confirmar mistralai/mistral-large, escolhido no Trabalho 1. Atualize o backend e recarregue a página.');
+    if ((testCase?.mode ?? 'real') === 'real' && !config?.model?.trim()) {
+      setError('Configure OPENROUTER_MODEL no backend e recarregue a página.');
       return;
     }
     const request = new AbortController();

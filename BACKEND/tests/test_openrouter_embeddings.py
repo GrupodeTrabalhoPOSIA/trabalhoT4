@@ -13,6 +13,7 @@ from app.services.embeddings.openrouter import OpenRouterEmbeddingService
 
 def make_settings(**overrides: object) -> Settings:
     overrides.setdefault("openrouter_embedding_model", "openai/text-embedding-3-small")
+    overrides.setdefault("embedding_send_dimensions", True)
     return Settings(
         _env_file=None,
         openrouter_api_key=SecretStr("segredo-de-teste"),
@@ -114,6 +115,17 @@ def test_empty_document_batch_does_not_require_configuration() -> None:
     assert OpenRouterEmbeddingService(settings).embed_documents([]) == []
 
 
+def test_embedded_credit_error_preserves_diagnostic():
+    service = OpenRouterEmbeddingService(make_settings(), transport=httpx.MockTransport(
+        lambda _: httpx.Response(200, json={"error": {"code": 402, "message": "private"}}),
+    ))
+    with pytest.raises(AppError) as caught:
+        service.embed_query("teste")
+    assert caught.value.code == "EMBEDDINGS_CREDIT_LIMIT"
+    assert caught.value.diagnostic.reason == "credits"
+    assert "private" not in str(caught.value)
+
+
 def test_mistral_rejects_vectors_with_the_old_dimension() -> None:
     service = OpenRouterEmbeddingService(
         Settings(_env_file=None, openrouter_api_key="chave-de-teste"),
@@ -140,6 +152,7 @@ def test_missing_key_returns_safe_configuration_error() -> None:
     ("provider_status", "expected_code"),
     [
         (401, "EMBEDDINGS_AUTH_ERROR"),
+        (402, "EMBEDDINGS_CREDIT_LIMIT"),
         (429, "EMBEDDINGS_RATE_LIMITED"),
         (404, "EMBEDDINGS_UNAVAILABLE"),
         (500, "EMBEDDINGS_PROVIDER_ERROR"),
@@ -158,6 +171,7 @@ def test_maps_provider_errors(provider_status: int, expected_code: str) -> None:
         service.embed_query("consulta")
 
     assert captured.value.code == expected_code
+    assert captured.value.diagnostic.http_status == provider_status
     assert "segredo privado" not in captured.value.message
 
 
@@ -203,3 +217,18 @@ def test_rejects_malformed_success_response(response_data: object) -> None:
 
     assert captured.value.status_code == 502
     assert captured.value.code == "EMBEDDINGS_INVALID_RESPONSE"
+
+
+def test_embedding_payload_uses_environment_model(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_EMBEDDING_MODEL", "vendor/configured-embedding")
+    monkeypatch.setenv("EMBEDDING_SEND_DIMENSIONS", "false")
+    captured = []
+
+    def handler(request):
+        captured.append(json.loads(request.content))
+        return httpx.Response(200, json={"data": [{"index": 0, "embedding": [0.1] * 1024}]})
+
+    settings = Settings(_env_file=None, openrouter_api_key="test-key")
+    OpenRouterEmbeddingService(settings, transport=httpx.MockTransport(handler)).embed_query("teste")
+    assert captured[0]["model"] == "vendor/configured-embedding"
+    assert "dimensions" not in captured[0]

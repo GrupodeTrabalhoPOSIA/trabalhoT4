@@ -9,6 +9,25 @@ import httpx
 from app.models.errors import ProviderDiagnostic
 
 
+def normalize_provider_response(response: httpx.Response) -> httpx.Response:
+    """Erros após o início da geração podem vir dentro de HTTP 200."""
+    if response.status_code >= 400:
+        return response
+    try:
+        payload = response.json()
+    except ValueError:
+        return response
+    if not isinstance(payload, dict) or "error" not in payload:
+        return response
+    error = payload["error"]
+    code = error.get("code") if isinstance(error, dict) else None
+    if isinstance(code, str) and code.isascii() and code.isdecimal() and len(code) == 3:
+        code = int(code)
+    if type(code) is not int or not 400 <= code <= 599:
+        code = 502
+    return httpx.Response(code, headers=response.headers, content=response.content)
+
+
 def parse_retry_after(value: str | None, *, now: datetime | None = None) -> int | None:
     """Aceita delta em segundos ou HTTP-date; arredonda para nunca antecipar o retry."""
     if value is None:

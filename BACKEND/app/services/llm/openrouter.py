@@ -8,7 +8,7 @@ import httpx
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.models.rag import LLMMessage
-from app.services.llm.provider_errors import diagnose_provider_error
+from app.services.llm.provider_errors import diagnose_provider_error, normalize_provider_response
 
 OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
 logger = logging.getLogger("aurora.openrouter")
@@ -93,6 +93,7 @@ class OpenRouterClient:
 
     @staticmethod
     def _raise_for_provider_error(response: httpx.Response) -> None:
+        response = normalize_provider_response(response)
         status_code = response.status_code
         if status_code < 400:
             return

@@ -1,5 +1,7 @@
 export type RunMode = 'real' | 'invalid_router' | 'invalid_specialist';
 export interface FlowConfig {
+  baseline_model?: string | null;
+  embedding_model?: string;
   model: string;
   temperature: number;
   max_tokens: number;

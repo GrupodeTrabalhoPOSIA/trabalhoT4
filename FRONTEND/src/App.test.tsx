@@ -29,8 +29,8 @@ describe('Portal acadêmico', () => {
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Um copiloto.');
     expect(screen.getAllByRole('link', { name: /^Abrir Trabalho/ })).toHaveLength(6);
     expect(screen.queryByText('API de teste')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Mistral Large' })).toHaveAttribute('href', 'https://openrouter.ai/mistralai/mistral-large');
-    expect(getFlowConfig).not.toHaveBeenCalled();
+    expect(await screen.findByRole('link', { name: 'mistralai/mistral-large' })).toHaveAttribute('href', 'https://openrouter.ai/mistralai/mistral-large');
+    expect(getFlowConfig).toHaveBeenCalledTimes(1);
   });
   it('abre uma entrega pelo endereço e navega entre páginas pelo histórico', async () => {
     window.history.replaceState(null, '', '#/entregas/2');
@@ -45,7 +45,7 @@ describe('Portal acadêmico', () => {
     expect(document.title).toBe('Aurora Tech · Trabalho 3');
     navigate('#/entregas/2');
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Especificação do copiloto');
-    expect(getFlowConfig).not.toHaveBeenCalled();
+    expect(getFlowConfig).toHaveBeenCalledTimes(1);
   });
   it('abre Sobre pelo endereço com o contexto acadêmico e os três integrantes', async () => {
     window.history.replaceState(null, '', '#/sobre');
@@ -58,7 +58,7 @@ describe('Portal acadêmico', () => {
     expect(screen.getByRole('link', { name: 'Sobre' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText(/não um canal oficial de atendimento de RH/)).toBeInTheDocument();
     expect(document.title).toBe('Aurora Tech · Sobre');
-    expect(getFlowConfig).not.toHaveBeenCalled();
+    expect(getFlowConfig).toHaveBeenCalledTimes(1);
   });
   it('preserva a sessão do T4 ao visitar outra entrega', async () => {
     const user = userEvent.setup();
@@ -73,6 +73,6 @@ describe('Portal acadêmico', () => {
     expect(screen.getByRole('button', { name: /Testes e evidências/ })).toHaveAttribute('aria-current', 'page');
     await user.click(screen.getByRole('button', { name: /Protótipo/ }));
     expect(screen.getByLabelText('Pergunta ao copiloto')).toHaveValue('Minha pergunta de teste');
-    expect(getFlowConfig).toHaveBeenCalledTimes(1);
+    expect(getFlowConfig).toHaveBeenCalledTimes(2);
   }, 15000);
 });

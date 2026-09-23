@@ -6,6 +6,7 @@ import httpx
 
 from app.core.config import Settings
 from app.core.errors import AppError
+from app.services.llm.provider_errors import diagnose_provider_error, normalize_provider_response
 
 OPENROUTER_EMBEDDINGS_URL = "https://openrouter.ai/api/v1/embeddings"
 
@@ -54,18 +55,15 @@ class OpenRouterEmbeddingService:
                         "model": self.settings.openrouter_embedding_model,
                         "input": batch,
                     }
-                    # Mistral Embed possui dimensão fixa; não solicitar redução.
-                    if (
-                        self.settings.openrouter_embedding_model
-                        != "mistralai/mistral-embed-2312"
-                    ):
+                    # Alguns modelos têm dimensão fixa e não aceitam este parâmetro.
+                    if self.settings.embedding_send_dimensions:
                         payload["dimensions"] = self.settings.embedding_dimensions
                     response = client.post(
                         OPENROUTER_EMBEDDINGS_URL,
                         headers=headers,
                         json=payload,
                     )
-                    self._raise_for_provider_error(response.status_code)
+                    self._raise_for_provider_error(response)
                     embeddings.extend(self._parse_response(response, len(batch)))
         except httpx.TimeoutException as exception:
             raise AppError(
@@ -129,19 +127,25 @@ class OpenRouterEmbeddingService:
             ) from exception
 
     @staticmethod
-    def _raise_for_provider_error(status_code: int) -> None:
+    def _raise_for_provider_error(response: httpx.Response) -> None:
+        response = normalize_provider_response(response)
+        status_code = response.status_code
         if status_code < 400:
             return
+        diagnostic = diagnose_provider_error(response)
         if status_code in {401, 403}:
             code = "EMBEDDINGS_AUTH_ERROR"
             message = "A autenticação do serviço de embeddings falhou."
         elif status_code == 429:
             code = "EMBEDDINGS_RATE_LIMITED"
-            message = "O limite do serviço de embeddings foi atingido. Tente mais tarde."
-        elif status_code in {402, 404}:
+            message = diagnostic.message
+        elif status_code == 402:
+            code = "EMBEDDINGS_CREDIT_LIMIT"
+            message = diagnostic.message
+        elif status_code == 404:
             code = "EMBEDDINGS_UNAVAILABLE"
             message = "O modelo de embeddings configurado não está disponível."
         else:
             code = "EMBEDDINGS_PROVIDER_ERROR"
             message = "O serviço de embeddings apresentou uma falha."
-        raise AppError(status_code=502, code=code, message=message)
+        raise AppError(status_code=502, code=code, message=message, diagnostic=diagnostic)

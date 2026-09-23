@@ -148,7 +148,7 @@ Quando nenhum trecho atinge o limiar de relevância, a API recusa a pergunta sem
 - contexto máximo de 6.000 caracteres;
 - modelo de geração: `mistralai/mistral-large`, escolhido no Trabalho 1 e mantido no chat RAG, na triagem e nos especialistas do T4.
 
-Os parâmetros operacionais podem ser ajustados em `BACKEND/.env`, mas o modelo de geração é fixado em `mistralai/mistral-large` para preservar a continuidade entre entregas. Um valor antigo/divergente em `OPENROUTER_MODEL` é ignorado com aviso no log; a configuração efetiva e as chamadas permanecem no Mistral Large. Não há fallback para outro modelo. A justificativa e o conjunto de perguntas estão em `BACKEND/evaluation/`.
+Os parâmetros e o modelo são configurados em `BACKEND/.env` ou no ambiente do processo. `OPENROUTER_MODEL` e `OPENROUTER_EMBEDDING_MODEL` são obrigatórios e não possuem fallback no código: ausência ou valor vazio impede iniciar a API. Para este projeto, configure `OPENROUTER_MODEL=mistralai/mistral-large`. O frontend usa a configuração informada pela API. Comparações com o baseline histórico continuam identificando modelos diferentes.
 
 O serviço valida vetores de 1024 dimensões, correspondentes ao tipo `vector(1024)` após a migração 002. O cliente não envia o parâmetro opcional de redução de dimensão ao Mistral. Trocar o modelo de **embeddings** exige reindexar todos os documentos, mesmo quando a dimensão for mantida, pois modelos diferentes geram espaços vetoriais incompatíveis. Alterar a dimensão também exige uma nova migração. Mistral Embed é usado somente na recuperação de documentos; não substitui Mistral Large na geração textual.
 
@@ -273,10 +273,9 @@ mantenha Docker Command vazio. Na Vercel, mantenha `VITE_API_URL` terminando em
 `/api/v1` e faça novo build. `GET /api/v1/t4/config` permite conferir modelo,
 parâmetros e versões sem expor segredos. O modelo efetivo deve ser
 `mistralai/mistral-large`, preservando a escolha do T1 e o baseline T2.
-Mantenha esse valor em `OPENROUTER_MODEL` no Render, mesmo que o backend atualizado
-normalize valores antigos. Reinicie/republique o backend para aplicar a configuração.
-Se a API antiga ainda informar outro modelo, o frontend avisa e bloqueia as
-execuções reais do T4. Simulações continuam explicitamente identificadas.
+Defina esse valor em `OPENROUTER_MODEL` no Render. O backend usa o valor do ambiente
+sem sobrescrevê-lo. Reinicie/republique o backend para aplicar a configuração.
+O frontend permite executar o modelo informado pela API.
 Registros anteriores com outro modelo não são reescritos nem aceitos como
 comparação equivalente com o baseline.
 
@@ -297,6 +296,8 @@ python run_t4.py
 O fluxo carrega os templates por ID/versão, usa o TRH-04 para roteamento, verifica dados ausentes, monta o contexto mínimo da política, valida o contrato da saída e permite uma única repetição antes do fallback seguro.
 
 ### Diagnóstico de limites do OpenRouter
+
+Veja [INTEGRACOES.md](INTEGRACOES.md) para a matriz de variáveis local/Render/Vercel e o diagnóstico seguro `python -m app.check_integrations --live`. O arquivo `env` da raiz não é carregado automaticamente: use `BACKEND/.env`. Variáveis do processo têm prioridade. O healthcheck não valida credenciais externas.
 
 - HTTP 429 é identificado como `MODEL_RATE_LIMITED`, separado de HTTP 402 (`MODEL_CREDIT_LIMIT`). Ter saldo não impede limites de requisições/capacidade.
 - O T4 respeita `Retry-After` em segundos ou data HTTP. Sem um cabeçalho válido, espera 2 segundos. Faz no máximo **uma repetição no fluxo inteiro**, compartilhada com falhas de formato/técnicas; não há retries ocultos no cliente HTTP.
